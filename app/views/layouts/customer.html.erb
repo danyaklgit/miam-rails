@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= @restaurant&.name || "Miam" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <% if @theme.present? %>
+      <style>
+        :root {
+          --miam-primary: <%= @theme["primaryColor"] || "#000000" %>;
+          --miam-secondary: <%= @theme["secondaryColor"] || "#f59e0b" %>;
+          --miam-bg: <%= @theme["backgroundColor"] || "#ffffff" %>;
+          --miam-text: <%= @theme["textColor"] || "#1f2937" %>;
+        }
+      </style>
+      <% if @theme["fontFamily"].present? && @theme["fontFamily"] != "Inter" %>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=<%= @theme["fontFamily"].gsub(" ", "+") %>:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <style>body { font-family: '<%= @theme["fontFamily"] %>', sans-serif; }</style>
+      <% end %>
+    <% end %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+  </head>
+
+  <body class="min-h-screen" style="background-color: var(--miam-bg); color: var(--miam-text);">
+    <%= yield %>
+    <%= render "shared/item_detail_modal" %>
+  </body>
+</html>

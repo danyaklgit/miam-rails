@@ -1,0 +1,15 @@
+test:
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage") %>
+
+local:
+  service: Disk
+  root: <%= Rails.root.join("storage") %>
+
+digitalocean:
+  service: S3
+  endpoint: https://<%= ENV.fetch("DO_SPACES_REGION", "ams3") %>.digitaloceanspaces.com
+  access_key_id: <%= Rails.application.credentials.dig(:digitalocean, :spaces_access_key) %>
+  secret_access_key: <%= Rails.application.credentials.dig(:digitalocean, :spaces_secret_key) %>
+  bucket: <%= ENV.fetch("DO_SPACES_BUCKET", "miam-uploads") %>
+  region: <%= ENV.fetch("DO_SPACES_REGION", "ams3") %>

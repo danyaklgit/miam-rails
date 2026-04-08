@@ -1,0 +1,149 @@
+<%# locals: (order:, order_items:, restaurant:, mode: "dineIn", cart_count: 0, cart_subtotal: 0) %>
+<% theme = restaurant.theme || {} %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+
+<%
+  if mode == "dineIn" && order
+    items = order_items || []
+    pending = items.count { |i| i.status == "pending" }
+    ordered = items.count { |i| i.status == "ordered" }
+    preparing = items.count { |i| i.status == "preparing" }
+    ready = items.count { |i| i.status == "ready" }
+    served = items.count { |i| i.status == "served" }
+    total_count = items.size
+    non_pending = total_count - pending
+    order_total = order.total_amount.to_f
+    paid_amount = order.paid_amount.to_f
+    left_to_pay = [order_total - paid_amount, 0].max
+    fully_paid = order_total > 0 && paid_amount >= order_total
+    all_served = non_pending > 0 && served == non_pending && pending == 0
+
+    # Match exact React CartFAB decision tree
+    if fully_paid
+      fab_label = "Order paid · View receipt"
+      fab_bg = "#059669"
+      fab_icon = "check"
+      fab_action = "link"
+      fab_href = "/#{restaurant.slug}/receipt/#{order.id}"
+    elsif pending > 0 && non_pending == 0
+      # All items are pending (none sent yet)
+      fab_label = "Review & send #{pending} item#{pending == 1 ? '' : 's'} to kitchen"
+      fab_bg = "#1f2937"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif pending > 0
+      # Some pending, some already sent
+      fab_label = "#{pending} pending · Send to kitchen"
+      fab_bg = "#1f2937"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif ready > 0 && ready == non_pending - served
+      # All non-served items are ready
+      fab_label = "#{ready} item#{ready == 1 ? '' : 's'} ready to be served"
+      fab_bg = "#059669"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif ready > 0
+      # Some ready, mixed with other statuses
+      parts = ["#{ready} ready"]
+      parts << "#{preparing} preparing" if preparing > 0
+      parts << "#{ordered} ordered" if ordered > 0
+      fab_label = parts.join(" · ")
+      fab_bg = "#059669"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif preparing > 0
+      fab_label = "#{preparing} item#{preparing == 1 ? '' : 's'} being prepared"
+      fab_bg = "#d97706"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif ordered > 0
+      fab_label = "#{ordered} item#{ordered == 1 ? '' : 's'} sent to kitchen"
+      fab_bg = "#dc2626"
+      fab_icon = "list"
+      fab_action = "drawer"
+    elsif all_served && left_to_pay > 0
+      fab_label = "All items served · Pay or split bill"
+      fab_bg = primary_color
+      fab_icon = "list"
+      fab_action = "drawer"
+    else
+      fab_label = "View order"
+      fab_bg = primary_color
+      fab_icon = "list"
+      fab_action = "drawer"
+    end
+
+    show_fab = total_count > 0
+
+    # Amount display
+    if paid_amount > 0 && !fully_paid
+      fab_amount_html = "<s class='opacity-50 mr-1'>€#{order_total.round(2)}</s> €#{left_to_pay.round(2)}"
+    else
+      fab_amount_html = "€#{order_total.round(2)}"
+    end
+  elsif mode == "takeaway"
+    fab_label = "View cart"
+    fab_bg = primary_color
+    fab_icon = "list"
+    fab_action = "drawer"
+    total_count = cart_count
+    show_fab = cart_count > 0
+    fab_amount_html = "€#{cart_subtotal.round(2)}"
+    fab_href = nil
+  else
+    show_fab = false
+  end
+%>
+
+<%# For dine-in: always render FAB container so live-fab controller can show it when items are added %>
+<% if mode == "dineIn" %>
+  <div class="fixed bottom-6 left-0 right-0 z-40 mx-auto max-w-lg px-4 <%= show_fab ? '' : 'hidden' %>"
+    data-controller="live-fab"
+    data-live-fab-primary-color-value="<%= primary_color %>"
+    data-live-fab-slug-value="<%= restaurant.slug %>"
+    data-live-fab-order-id-value="<%= order&.id %>">
+    <% if show_fab && fab_action == "link" && fab_href %>
+      <%= link_to fab_href,
+        class: "flex w-full items-center justify-between rounded-2xl px-6 py-4 text-white shadow-lg transition-opacity hover:opacity-95",
+        style: "background-color: #{fab_bg}",
+        data: { "live-fab-target": "button" } do %>
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/20" data-live-fab-target="count">
+            <% if fab_icon == "check" %>
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <% else %>
+              <%= total_count %>
+            <% end %>
+          </div>
+          <span class="font-semibold text-sm" data-live-fab-target="label"><%= fab_label || '' %></span>
+        </div>
+        <span class="font-bold" data-live-fab-target="amount"><%= show_fab ? raw(fab_amount_html) : '' %></span>
+      <% end %>
+    <% else %>
+      <button class="flex w-full items-center justify-between rounded-2xl px-6 py-4 text-white shadow-lg transition-opacity hover:opacity-95"
+        style="background-color: <%= show_fab ? fab_bg : primary_color %>"
+        onclick="window.dispatchEvent(new CustomEvent('cart-drawer:open'))"
+        data-live-fab-target="button">
+        <div class="flex items-center gap-3">
+          <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-sm font-bold" data-live-fab-target="count"><%= show_fab ? total_count : 0 %></div>
+          <span class="font-semibold text-sm" data-live-fab-target="label"><%= show_fab ? fab_label : '' %></span>
+        </div>
+        <span class="font-bold" data-live-fab-target="amount"><%= show_fab ? raw(fab_amount_html) : '' %></span>
+      </button>
+    <% end %>
+  </div>
+<% elsif show_fab %>
+  <%# Takeaway: only render when items exist %>
+  <div class="fixed bottom-6 left-0 right-0 z-40 mx-auto max-w-lg px-4">
+    <button class="flex w-full items-center justify-between rounded-2xl px-6 py-4 text-white shadow-lg transition-opacity hover:opacity-95"
+      style="background-color: <%= fab_bg %>"
+      onclick="window.dispatchEvent(new CustomEvent('cart-drawer:open'))">
+      <div class="flex items-center gap-3">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-sm font-bold"><%= total_count %></div>
+        <span class="font-semibold text-sm"><%= fab_label %></span>
+      </div>
+      <span class="font-bold"><%= raw fab_amount_html %></span>
+    </button>
+  </div>
+<% end %>

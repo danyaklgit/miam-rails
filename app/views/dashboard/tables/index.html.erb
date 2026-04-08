@@ -1,0 +1,32 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Tables & QR Codes</h1>
+  <div class="flex gap-2">
+    <%= form_with url: bulk_create_dashboard_tables_path, method: :post, class: "flex items-center gap-2" do %>
+      <input type="number" name="count" value="1" min="1" max="20" class="w-16 rounded-lg border border-gray-200 px-3 py-2 text-sm">
+      <button type="submit" class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors">
+        Add tables
+      </button>
+    <% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+  <% @tables.each do |table| %>
+    <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100 text-center" data-controller="qr-code" data-qr-code-url-value="https://miam.digital/<%= @restaurant.slug %>/table/<%= table.number %>">
+      <p class="text-3xl font-bold text-gray-900 mb-1"><%= table.number %></p>
+      <p class="text-xs text-gray-400 mb-3"><%= table.capacity %> seats</p>
+
+      <div class="mx-auto mb-3" data-qr-code-target="canvas"></div>
+
+      <div class="flex gap-1 justify-center">
+        <button data-action="click->qr-code#download" class="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 transition-colors">
+          Download QR
+        </button>
+        <%= button_to dashboard_table_path(table), method: :delete, class: "rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors",
+          data: { turbo_confirm: "Delete table #{table.number}?" } do %>
+          Delete
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

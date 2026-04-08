@@ -1,0 +1,71 @@
+<%= turbo_stream_from "restaurant_#{@restaurant.id}" %>
+
+<% view_mode = params[:view] || "all" %>
+
+<div class="min-h-screen bg-gray-900 p-4 sm:p-6" data-controller="audio-chime auto-refresh"
+  data-auto-refresh-interval-value="5000"
+  data-auto-refresh-url-value="<%= request.path %>?view=<%= view_mode %>">
+
+  <%# Header %>
+  <header class="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <h1 class="text-2xl font-bold text-white">Kitchen</h1>
+      <div class="flex gap-2">
+        <span class="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold text-white"><%= @counts[:ordered] %> new</span>
+        <span class="rounded-full bg-yellow-600 px-2.5 py-0.5 text-xs font-bold text-white"><%= @counts[:preparing] %> prep</span>
+        <span class="rounded-full bg-green-600 px-2.5 py-0.5 text-xs font-bold text-white"><%= @counts[:ready] %> ready</span>
+      </div>
+    </div>
+    <div class="flex gap-1 rounded-lg bg-gray-800 p-1">
+      <% %w[all byOrder].each do |mode| %>
+        <% label = { "all" => "All Items", "byOrder" => "By Order" }[mode] %>
+        <%= link_to request.path + "?view=#{mode}",
+          class: "rounded-md px-3 py-1.5 text-xs font-medium transition-colors #{view_mode == mode ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}" do %>
+          <%= label %>
+        <% end %>
+      <% end %>
+    </div>
+  </header>
+
+  <% if view_mode == "byOrder" %>
+    <%# Grouped by order %>
+    <%
+      grouped = @items.group_by { |i| i.respond_to?(:parent_order_id) ? i.parent_order_id : i.order_id }
+    %>
+    <div class="space-y-6">
+      <% grouped.each do |order_id, items| %>
+        <% table_num = items.first.respond_to?(:order_table_id) && items.first.order_table_id.present? ? RestaurantTable.find_by(id: items.first.order_table_id)&.number : nil %>
+        <div class="rounded-xl border border-gray-700 bg-gray-800/50 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-white">
+              <%= table_num ? "Table #{table_num}" : "Order ##{order_id.to_s[0, 8]}" %>
+            </h3>
+            <span class="text-xs text-gray-500"><%= items.size %> items</span>
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <% items.each do |item| %>
+              <%= render "display/shared/order_ticket", item: item, show_table: false %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+      <% if grouped.empty? %>
+        <div class="flex items-center justify-center py-20">
+          <p class="text-lg text-gray-600">No food orders right now</p>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%# Flat items view %>
+    <div id="ticket_grid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <% @items.each do |item| %>
+        <%= render "display/shared/order_ticket", item: item, show_table: true %>
+      <% end %>
+      <% if @items.empty? %>
+        <div class="col-span-full flex items-center justify-center py-20">
+          <p class="text-lg text-gray-600">No food orders right now</p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

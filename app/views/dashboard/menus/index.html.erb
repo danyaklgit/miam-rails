@@ -1,0 +1,180 @@
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Menu Manager</h1>
+</div>
+
+<%# Menu tabs %>
+<div class="flex items-center gap-2 mb-6 overflow-x-auto">
+  <% @menus.each do |menu| %>
+    <% active = menu.id == @active_menu&.id %>
+    <%= link_to dashboard_menu_path(menu_id: menu.id),
+      class: "shrink-0 rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition-colors #{active ? 'border-black bg-black text-white' : 'border-gray-200 hover:border-gray-400'}" do %>
+      <%= menu.name %>
+      <% unless menu.is_active %><span class="ml-1 text-xs opacity-50">(inactive)</span><% end %>
+    <% end %>
+  <% end %>
+  <button class="shrink-0 flex items-center gap-1 rounded-xl border-2 border-dashed border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+    data-action="click->modal#open" data-modal-id-param="new-menu-modal">
+    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Add Menu
+  </button>
+</div>
+
+<% if @active_menu %>
+  <%# Menu actions bar %>
+  <div class="flex items-center justify-between mb-4 rounded-xl bg-gray-50 px-4 py-3">
+    <div class="flex items-center gap-3">
+      <h2 class="font-semibold text-gray-900"><%= @active_menu.name %></h2>
+      <% if @active_menu.schedule&.dig("type") == "scheduled" %>
+        <span class="text-xs text-gray-500">
+          <svg class="inline h-3.5 w-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <%= @active_menu.schedule["startTime"] %>–<%= @active_menu.schedule["endTime"] %>
+        </span>
+      <% end %>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= button_to dashboard_menu_path(@active_menu, menu: { is_active: !@active_menu.is_active }), method: :patch,
+        class: "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors #{@active_menu.is_active ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}" do %>
+        <%= @active_menu.is_active ? "Active" : "Inactive" %>
+      <% end %>
+      <button class="rounded-lg bg-gray-200 p-1.5 text-gray-500 hover:bg-gray-300 transition-colors"
+        data-action="click->modal#open" data-modal-id-param="edit-menu-modal">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </button>
+      <%= button_to dashboard_menu_path(@active_menu), method: :delete,
+        class: "rounded-lg bg-red-100 p-1.5 text-red-600 hover:bg-red-200 transition-colors",
+        data: { turbo_confirm: "Delete this menu and all its categories/items?" } do %>
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Two-column layout: sidebar + content %>
+  <div class="flex gap-6">
+    <%# Category sidebar %>
+    <div class="w-56 shrink-0">
+      <div class="sticky top-6 space-y-1">
+        <% @active_menu.categories.sorted.each do |category| %>
+          <% cat_active = category.id == @active_category&.id %>
+          <%= link_to dashboard_menu_path(menu_id: @active_menu.id, category_id: category.id),
+            class: "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors #{cat_active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}" do %>
+            <span class="truncate"><%= category.name %></span>
+            <span class="text-xs opacity-50"><%= category.menu_items.size %></span>
+          <% end %>
+        <% end %>
+        <button class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          data-action="click->modal#open" data-modal-id-param="new-category-modal">
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Add Category
+        </button>
+      </div>
+    </div>
+
+    <%# Items content %>
+    <div class="flex-1 min-w-0">
+      <% if @active_category %>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900"><%= @active_category.name %></h3>
+            <% if @active_category.description.present? %>
+              <p class="text-sm text-gray-500"><%= @active_category.description %></p>
+            <% end %>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
+              data-action="click->modal#open" data-modal-id-param="new-item-modal">
+              <svg class="inline h-3.5 w-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add Item
+            </button>
+            <button class="rounded-lg bg-gray-100 p-1.5 text-gray-500 hover:bg-gray-200 transition-colors"
+              data-action="click->modal#open" data-modal-id-param="edit-category-modal">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            </button>
+            <%= button_to dashboard_category_path(@active_category), method: :delete,
+              class: "rounded-lg bg-red-50 p-1.5 text-red-500 hover:bg-red-100 transition-colors",
+              data: { turbo_confirm: "Delete '#{@active_category.name}' and all its items?" } do %>
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <% end %>
+          </div>
+        </div>
+
+        <%# Items list %>
+        <div class="space-y-3">
+          <% @active_category.menu_items.sorted.each do |item| %>
+            <div class="flex items-center gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+              <% images = item.images || [] %>
+              <% if images.any? %>
+                <img src="<%= images.first %>" alt="<%= item.name %>" class="h-16 w-16 rounded-lg object-cover shrink-0">
+              <% else %>
+                <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl">
+                  <%= item.type == "food" ? "🍽" : "🍷" %>
+                </div>
+              <% end %>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-gray-900 truncate"><%= item.name %></p>
+                  <span class="rounded-full px-2 py-0.5 text-[10px] font-medium <%= item.type == 'food' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600' %>"><%= item.type %></span>
+                  <% unless item.available %>
+                    <span class="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-600">Unavailable</span>
+                  <% end %>
+                </div>
+                <% if item.description.present? %>
+                  <p class="text-sm text-gray-500 truncate mt-0.5"><%= item.description %></p>
+                <% end %>
+              </div>
+              <p class="text-sm font-bold text-gray-900 shrink-0"><%= number_to_currency(item.price, unit: "€", format: "%u%n") %></p>
+              <div class="flex items-center gap-1 shrink-0">
+                <button class="rounded-lg p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  data-action="click->modal#open" data-modal-id-param="edit-item-modal-<%= item.id %>">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                </button>
+                <%= button_to dashboard_menu_item_path(item, menu_item: { available: !item.available }), method: :patch,
+                  class: "rounded-lg p-1.5 transition-colors #{item.available ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}" do %>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<%= item.available ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' : 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21' %>"/></svg>
+                <% end %>
+                <%= button_to dashboard_menu_item_path(item), method: :delete,
+                  class: "rounded-lg p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors",
+                  data: { turbo_confirm: "Delete '#{item.name}'?" } do %>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <% if @active_category.menu_items.empty? %>
+            <div class="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
+              <p class="text-sm text-gray-400">No items in this category</p>
+              <button class="mt-2 text-sm font-medium text-gray-900 hover:underline"
+                data-action="click->modal#open" data-modal-id-param="new-item-modal">
+                Add your first item
+              </button>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="rounded-xl border-2 border-dashed border-gray-200 p-12 text-center">
+          <p class="text-gray-400">Select a category or create one to manage items</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="rounded-xl border-2 border-dashed border-gray-200 p-12 text-center">
+    <p class="text-gray-400 mb-2">No menus yet</p>
+    <button class="text-sm font-medium text-gray-900 hover:underline"
+      data-action="click->modal#open" data-modal-id-param="new-menu-modal">
+      Create your first menu
+    </button>
+  </div>
+<% end %>
+
+<%# ===== MODALS ===== %>
+<%= render "dashboard/menus/new_menu_modal" %>
+<%= render "dashboard/menus/edit_menu_modal", menu: @active_menu if @active_menu %>
+<%= render "dashboard/menus/new_category_modal", menu: @active_menu if @active_menu %>
+<%= render "dashboard/menus/edit_category_modal", category: @active_category if @active_category %>
+<%= render "dashboard/menus/new_item_modal", category: @active_category if @active_category %>
+<% if @active_category %>
+  <% @active_category.menu_items.sorted.each do |item| %>
+    <%= render "dashboard/menus/edit_item_modal", item: item %>
+  <% end %>
+<% end %>

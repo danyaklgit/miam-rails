@@ -1,0 +1,49 @@
+<%= link_to "&larr; Back to restaurants".html_safe, admin_restaurants_path, class: "text-sm text-gray-500 hover:text-gray-700 mb-4 inline-block" %>
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900"><%= @restaurant.name %></h1>
+    <p class="text-sm text-gray-500"><%= @restaurant.slug %> &middot; Owner: <%= @restaurant.owner_id %></p>
+  </div>
+  <div class="flex gap-2">
+    <% %w[active disabled pending].each do |status| %>
+      <% if @restaurant.status != status %>
+        <%= button_to status.capitalize, admin_restaurant_path(@restaurant, restaurant: { status: status }), method: :patch,
+          class: "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors
+            #{status == 'active' ? 'bg-green-100 text-green-700 hover:bg-green-200' : status == 'disabled' ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}" %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+  <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500">Status</p>
+    <p class="mt-1 text-lg font-bold <%= @restaurant.status == 'active' ? 'text-green-600' : 'text-red-600' %>"><%= @restaurant.status.capitalize %></p>
+  </div>
+  <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500">Orders</p>
+    <p class="mt-1 text-lg font-bold text-gray-900"><%= @orders_count %></p>
+  </div>
+  <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500">Revenue</p>
+    <p class="mt-1 text-lg font-bold text-gray-900"><%= number_to_currency(@revenue, unit: "€", format: "%u%n") %></p>
+  </div>
+  <div class="rounded-2xl bg-white p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500">Tables / Menus</p>
+    <p class="mt-1 text-lg font-bold text-gray-900"><%= @tables_count %> / <%= @menus_count %></p>
+  </div>
+</div>
+
+<div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+  <h2 class="text-lg font-semibold text-gray-900 mb-4">Details</h2>
+  <dl class="grid grid-cols-2 gap-4 text-sm">
+    <div><dt class="text-gray-500">Currency</dt><dd class="font-medium text-gray-900"><%= @restaurant.currency %></dd></div>
+    <div><dt class="text-gray-500">Timezone</dt><dd class="font-medium text-gray-900"><%= @restaurant.timezone %></dd></div>
+    <div><dt class="text-gray-500">Tax Rate</dt><dd class="font-medium text-gray-900"><%= @restaurant.tax_rate %>%</dd></div>
+    <div><dt class="text-gray-500">Created</dt><dd class="font-medium text-gray-900"><%= @restaurant.created_at.strftime("%B %d, %Y") %></dd></div>
+    <% stripe = @restaurant.stripe || {} %>
+    <div><dt class="text-gray-500">Stripe Account</dt><dd class="font-medium text-gray-900"><%= stripe["stripeAccountId"].presence || "Not connected" %></dd></div>
+    <div><dt class="text-gray-500">Stripe Onboarding</dt><dd class="font-medium text-gray-900"><%= stripe["onboardingComplete"] ? "Complete" : "Incomplete" %></dd></div>
+  </dl>
+</div>

@@ -1,0 +1,21 @@
+<%# locals: (items:, restaurant:) %>
+<% menu_style = (restaurant.theme || {})["menuStyle"] || "cards" %>
+
+<div class="mx-auto max-w-lg px-4 py-4">
+  <% if items.empty? %>
+    <p class="text-center text-sm opacity-50 py-8">No items available</p>
+  <% else %>
+    <div class="<%= menu_style == 'cards' ? 'space-y-3' : '' %>">
+      <% items.each do |item| %>
+        <% case menu_style
+           when "cards" %>
+          <%= render "shared/menu_item_card", item: item, restaurant: restaurant %>
+        <% when "list" %>
+          <%= render "shared/menu_item_list", item: item, restaurant: restaurant %>
+        <% when "compact" %>
+          <%= render "shared/menu_item_compact", item: item, restaurant: restaurant %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

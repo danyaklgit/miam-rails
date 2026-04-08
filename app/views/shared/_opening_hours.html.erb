@@ -1,0 +1,46 @@
+<%# locals: (hours:, theme:) %>
+<% return if hours.blank? %>
+<% days = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+<% today = Date.current.strftime("%A").downcase %>
+<% today_info = hours[today] %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+<% is_open = today_info && !today_info["closed"] %>
+
+<div class="mx-auto max-w-lg px-4 py-3" data-controller="accordion">
+  <%# Today summary (clickable header) %>
+  <button data-action="click->accordion#toggle" class="flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors hover:bg-gray-50"
+    style="border-color: <%= text_color %>15">
+    <div class="flex items-center gap-2">
+      <svg class="h-4 w-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="text-sm">
+        <% if is_open %>
+          <span class="font-medium"><%= today_info["open"] %> — <%= today_info["close"] %></span>
+        <% else %>
+          <span class="font-medium">Closed today</span>
+        <% end %>
+      </span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="rounded-full px-2 py-0.5 text-xs font-medium <%= is_open ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' %>">
+        <%= is_open ? "Open" : "Closed" %>
+      </span>
+      <svg class="h-4 w-4 opacity-40 transition-transform" data-accordion-target="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </div>
+  </button>
+
+  <%# Expandable hours list %>
+  <div data-accordion-target="content" class="hidden mt-2 rounded-xl border px-4 py-2" style="border-color: <%= text_color %>10">
+    <% days.each do |day| %>
+      <% info = hours[day] %>
+      <% is_today = day == today %>
+      <div class="flex items-center justify-between py-1.5 text-sm <%= is_today ? 'font-semibold' : 'opacity-60' %>">
+        <span><%= day.capitalize %></span>
+        <% if info.nil? || info["closed"] %>
+          <span class="text-red-500">Closed</span>
+        <% else %>
+          <span><%= info["open"] %> — <%= info["close"] %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

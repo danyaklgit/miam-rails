@@ -1,0 +1,150 @@
+<div class="min-h-screen bg-gray-50 px-4 pb-12" data-controller="reservation-wizard">
+  <div class="mx-auto max-w-lg">
+    <%# Header %>
+    <div class="pt-6">
+      <%= link_to restaurant_path(slug: @restaurant.slug), class: "mb-4 flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700" do %>
+        <span>&larr;</span> Back to restaurant
+      <% end %>
+      <div class="flex flex-col items-center text-center">
+        <% if @theme["logoUrl"].present? %>
+          <img src="<%= @theme["logoUrl"] %>" alt="<%= @restaurant.name %>" class="mb-3 h-14 max-w-20 object-contain">
+        <% end %>
+        <h1 class="text-2xl font-bold text-gray-900">Reserve a Table</h1>
+      </div>
+    </div>
+
+    <%# Step indicator %>
+    <div class="flex items-center justify-center gap-2 py-6">
+      <% 3.times do |i| %>
+        <div class="flex items-center gap-2">
+          <div class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300"
+            data-reservation-wizard-target="stepIndicator"
+            data-step="<%= i + 1 %>">
+            <%= i + 1 %>
+          </div>
+          <% if i < 2 %>
+            <div class="h-0.5 w-8 bg-gray-200 transition-colors duration-300"
+              data-reservation-wizard-target="stepLine" data-step="<%= i + 1 %>"></div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%= form_with url: restaurant_reserve_path(slug: @restaurant.slug), method: :post, data: { reservation_wizard_target: "form" } do |f| %>
+      <%# Step 1: Party Size, Date & Time %>
+      <div data-reservation-wizard-target="step" data-step="1" class="rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          Party Size
+        </h2>
+        <div class="mb-2 flex flex-wrap gap-2">
+          <% (1..8).each do |size| %>
+            <button type="button" data-action="click->reservation-wizard#selectPartySize"
+              data-reservation-wizard-size-param="<%= size %>"
+              class="h-11 w-11 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-200 active:scale-95"
+              data-reservation-wizard-target="partySizeBtn">
+              <%= size %>
+            </button>
+          <% end %>
+          <button type="button" data-action="click->reservation-wizard#selectLargeParty"
+            class="h-11 rounded-full px-4 text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-200 active:scale-95"
+            data-reservation-wizard-target="largePartyBtn">
+            9+
+          </button>
+        </div>
+        <div class="hidden mt-3" data-reservation-wizard-target="customSizeWrapper">
+          <input type="number" min="9" max="50" placeholder="Enter party size"
+            data-reservation-wizard-target="customSizeInput"
+            data-action="input->reservation-wizard#updateCustomSize"
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+        </div>
+        <input type="hidden" name="party_size" data-reservation-wizard-target="partySizeField">
+
+        <h2 class="mb-4 mt-6 flex items-center gap-2 text-lg font-semibold text-gray-900">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Date
+        </h2>
+        <input type="date" name="date" min="<%= Date.current.to_s %>"
+          data-reservation-wizard-target="dateField"
+          class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+
+        <h2 class="mb-4 mt-6 flex items-center gap-2 text-lg font-semibold text-gray-900">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Time
+        </h2>
+        <input type="time" name="time"
+          data-reservation-wizard-target="timeField"
+          class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+
+        <button type="button" data-action="click->reservation-wizard#nextStep"
+          data-reservation-wizard-target="step1Next"
+          disabled
+          class="mt-6 w-full rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          style="background-color: var(--miam-primary)">
+          Continue
+        </button>
+      </div>
+
+      <%# Step 2: Your Details %>
+      <div data-reservation-wizard-target="step" data-step="2" class="hidden rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Your Details</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Name *</label>
+            <input type="text" name="customer_name" placeholder="John Doe" required
+              data-reservation-wizard-target="nameField"
+              class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Phone *</label>
+            <input type="tel" name="customer_phone" placeholder="+32 470 00 00 00" required
+              data-reservation-wizard-target="phoneField"
+              class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Email *</label>
+            <input type="email" name="customer_email" placeholder="john@example.com" required
+              data-reservation-wizard-target="emailField"
+              class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]">
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">Special Requests</label>
+            <textarea name="notes" placeholder="Any allergies, celebrations, seating preferences..." rows="3"
+              class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none focus:border-[var(--miam-primary)]"></textarea>
+          </div>
+        </div>
+        <div class="mt-6 flex gap-3">
+          <button type="button" data-action="click->reservation-wizard#prevStep"
+            class="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+            &larr; Back
+          </button>
+          <button type="button" data-action="click->reservation-wizard#nextStep"
+            data-reservation-wizard-target="step2Next"
+            disabled
+            class="flex-1 rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+            style="background-color: var(--miam-primary)">
+            Continue
+          </button>
+        </div>
+      </div>
+
+      <%# Step 3: Confirmation %>
+      <div data-reservation-wizard-target="step" data-step="3" class="hidden rounded-2xl bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Confirm Your Reservation</h2>
+        <div class="space-y-3 rounded-xl bg-gray-50 p-4" data-reservation-wizard-target="summary">
+        </div>
+        <div class="mt-6 flex gap-3">
+          <button type="button" data-action="click->reservation-wizard#prevStep"
+            class="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">
+            &larr; Back
+          </button>
+          <button type="submit"
+            class="flex-1 rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            style="background-color: var(--miam-primary)">
+            Confirm Reservation
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

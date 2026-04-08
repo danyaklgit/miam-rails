@@ -1,0 +1,22 @@
+<%# locals: (menus:, active_menu_id:, restaurant:, url_base:) %>
+<% return if menus.size <= 1 %>
+<% theme = restaurant.theme || {} %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+
+<div class="mx-auto max-w-lg px-4 pb-2">
+  <div class="flex gap-2 overflow-x-auto">
+    <% menus.each do |menu| %>
+      <% active = menu.id == active_menu_id %>
+      <%= link_to url_base.call(menu_id: menu.id),
+        class: "shrink-0 rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition-colors",
+        style: "border-color: #{active ? primary_color : text_color + '20'}; background-color: #{active ? primary_color : 'transparent'}; color: #{active ? '#ffffff' : text_color}" do %>
+        <%= menu.name %>
+        <% schedule = menu.schedule || {} %>
+        <% if schedule["type"] == "scheduled" && schedule["startTime"].present? %>
+          <span class="ml-1.5 text-xs opacity-60"><%= schedule["startTime"] %>–<%= schedule["endTime"] %></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

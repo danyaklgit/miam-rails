@@ -1,0 +1,119 @@
+<div class="min-h-screen pb-8">
+  <%# Header %>
+  <div class="px-4 pb-4 pt-6" style="background-color: <%= @theme['primaryColor'] %>">
+    <div class="mx-auto max-w-lg">
+      <%= link_to restaurant_menu_path(slug: @restaurant.slug), class: "mb-3 inline-block text-sm font-medium text-white/80 hover:text-white" do %>
+        &larr; Back to menu
+      <% end %>
+      <h1 class="text-xl font-bold text-white">Checkout</h1>
+      <p class="text-sm text-white/70">
+        <%= @order_type == "delivery" ? "Delivery" : "Takeaway" %> from <%= @restaurant.name %>
+      </p>
+    </div>
+  </div>
+
+  <%= form_with url: restaurant_checkout_path(slug: @restaurant.slug), method: :post, class: "mx-auto max-w-lg px-4 py-6 space-y-6" do |f| %>
+    <%# Order summary %>
+    <section>
+      <h2 class="mb-3 text-sm font-bold uppercase tracking-wide opacity-50">Your order</h2>
+      <div class="space-y-3" data-controller="cart">
+        <% @cart_items.each_with_index do |item, idx| %>
+          <div class="flex items-center justify-between rounded-xl border px-4 py-3" style="border-color: <%= @theme['textColor'] %>15">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <span class="w-5 text-center text-sm font-semibold"><%= item["quantity"] || 1 %></span>
+              </div>
+              <div>
+                <p class="text-sm font-semibold"><%= item["name"] %></p>
+                <% if item["variantName"].present? %>
+                  <p class="text-xs opacity-50"><%= item["variantName"] %></p>
+                <% end %>
+                <% if item["notes"].present? %>
+                  <p class="text-xs italic opacity-70 mt-0.5"><%= item["notes"] %></p>
+                <% end %>
+              </div>
+            </div>
+            <p class="text-sm font-bold" style="color: <%= @theme['primaryColor'] %>">
+              <%= number_to_currency((item["price"].to_f + (item["variantPriceModifier"] || 0).to_f) * (item["quantity"] || 1), unit: "€", format: "%u%n") %>
+            </p>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <%# Contact info %>
+    <section>
+      <h2 class="mb-3 text-sm font-bold uppercase tracking-wide opacity-50">Contact info</h2>
+      <div class="space-y-3">
+        <input type="text" name="customer_name" placeholder="Full name" required
+          class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+        <input type="email" name="customer_email" placeholder="Email" required
+          class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+        <input type="tel" name="customer_phone" placeholder="Phone number" required
+          class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+      </div>
+    </section>
+
+    <% if @order_type == "delivery" %>
+      <%# Delivery address %>
+      <section>
+        <h2 class="mb-3 text-sm font-bold uppercase tracking-wide opacity-50">Delivery address</h2>
+        <div class="space-y-3">
+          <input type="text" name="street" placeholder="Street address" required
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+          <div class="flex gap-3">
+            <input type="text" name="city" placeholder="City" required
+              class="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+            <input type="text" name="postal_code" placeholder="Postal code" required
+              class="w-28 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+          </div>
+          <textarea name="instructions" placeholder="Delivery instructions (optional)" rows="2"
+            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400"></textarea>
+        </div>
+      </section>
+    <% else %>
+      <%= render "shared/pickup_time_selector", field_name: "pickup_time", theme: @theme %>
+    <% end %>
+
+    <%# Promo code %>
+    <section data-controller="promo-code" data-promo-code-restaurant-id-value="<%= @restaurant.id %>">
+      <div class="flex gap-2">
+        <input type="text" name="promo_code" placeholder="Promo code"
+          data-promo-code-target="input"
+          class="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-gray-400">
+        <button type="button" data-action="promo-code#validate"
+          class="rounded-xl px-4 py-3 text-sm font-semibold text-white"
+          style="background-color: <%= @theme['primaryColor'] %>">
+          Apply
+        </button>
+      </div>
+    </section>
+
+    <%# Totals %>
+    <section class="space-y-2 border-t pt-4" style="border-color: <%= @theme['textColor'] %>15">
+      <div class="flex justify-between text-sm">
+        <span class="opacity-60">Subtotal</span>
+        <span class="font-semibold"><%= number_to_currency(@subtotal, unit: "€", format: "%u%n") %></span>
+      </div>
+      <% if @discount > 0 %>
+        <div class="flex justify-between text-sm text-green-600">
+          <span>Discount</span>
+          <span class="font-semibold">-<%= number_to_currency(@discount, unit: "€", format: "%u%n") %></span>
+        </div>
+      <% end %>
+      <div class="flex justify-between text-lg font-bold">
+        <span>Total</span>
+        <span style="color: <%= @theme['primaryColor'] %>"><%= number_to_currency(@total, unit: "€", format: "%u%n") %></span>
+      </div>
+    </section>
+
+    <input type="hidden" name="total" value="<%= @total %>">
+    <input type="hidden" name="country" value="BE">
+
+    <button type="submit"
+      class="w-full rounded-2xl py-4 text-center text-lg font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      style="background-color: <%= @theme['primaryColor'] %>">
+      Place order &middot; <%= number_to_currency(@total, unit: "€", format: "%u%n") %>
+    </button>
+  <% end %>
+</div>

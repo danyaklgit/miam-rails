@@ -1,0 +1,51 @@
+<%# locals: (category:) %>
+<%
+  allergen_list = %w[gluten crustaceans eggs fish peanuts soybeans milk nuts celery mustard sesame sulphites lupin molluscs]
+%>
+<%= render layout: "shared/modal_wrapper", locals: { id: "new-item-modal", title: "New Item" } do %>
+  <%= form_with url: dashboard_menu_items_path(category_id: category.id), class: "space-y-4" do |f| %>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input type="text" name="menu_item[name]" required placeholder="e.g. Moules-frites"
+        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+      <textarea name="menu_item[description]" rows="2" placeholder="Optional description"
+        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black resize-none"></textarea>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Price (€)</label>
+      <input type="number" name="menu_item[price]" step="0.01" min="0" required placeholder="0.00"
+        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+      <div class="flex gap-2">
+        <label class="flex-1 rounded-xl border-2 px-4 py-2.5 text-sm font-medium text-center cursor-pointer transition-colors has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white border-gray-200">
+          <input type="radio" name="menu_item[type]" value="food" checked class="hidden">
+          🍽 Food
+        </label>
+        <label class="flex-1 rounded-xl border-2 px-4 py-2.5 text-sm font-medium text-center cursor-pointer transition-colors has-[:checked]:border-black has-[:checked]:bg-black has-[:checked]:text-white border-gray-200">
+          <input type="radio" name="menu_item[type]" value="drink" class="hidden">
+          🍷 Drink
+        </label>
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">Allergens</label>
+      <div class="flex flex-wrap gap-2">
+        <% allergen_list.each do |allergen| %>
+          <label class="rounded-full px-3 py-1 text-xs font-medium cursor-pointer transition-colors has-[:checked]:bg-red-100 has-[:checked]:text-red-800 has-[:checked]:ring-1 has-[:checked]:ring-red-300 bg-gray-100 text-gray-600">
+            <input type="checkbox" name="menu_item[allergens][]" value="<%= allergen %>" class="hidden">
+            <%= allergen %>
+          </label>
+        <% end %>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 transition-colors">Create Item</button>
+      <button type="button" data-action="click->modal#close" class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+    </div>
+  <% end %>
+<% end %>

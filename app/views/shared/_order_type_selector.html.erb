@@ -1,0 +1,59 @@
+<%# locals: (restaurant:) %>
+<% settings = restaurant.settings || {} %>
+<% order_types = settings["orderTypes"] || {} %>
+<% theme = restaurant.theme || {} %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+
+<div class="mx-auto max-w-lg px-4 py-4 space-y-3">
+  <%# Order type cards %>
+  <div class="space-y-3">
+    <% if order_types["dineIn"] %>
+      <div class="flex gap-4 rounded-2xl border-2 p-5 opacity-50 cursor-default" style="border-color: <%= text_color %>20">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-50">
+          <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div>
+          <p class="font-semibold">Dine In</p>
+          <p class="mt-0.5 text-xs opacity-60">Scan the QR code at your table</p>
+        </div>
+      </div>
+    <% end %>
+
+    <% if order_types["takeaway"] %>
+      <%= link_to restaurant_menu_path(slug: restaurant.slug, type: "takeaway"),
+        class: "flex gap-4 rounded-2xl border-2 p-5 transition-shadow hover:shadow-md",
+        style: "border-color: #{text_color}20" do %>
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+          <svg class="h-6 w-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+        </div>
+        <div>
+          <p class="font-semibold">Takeaway</p>
+          <p class="mt-0.5 text-xs opacity-60">Order and pick up</p>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if order_types["delivery"] %>
+      <%= link_to restaurant_menu_path(slug: restaurant.slug, type: "delivery"),
+        class: "flex gap-4 rounded-2xl border-2 p-5 transition-shadow hover:shadow-md",
+        style: "border-color: #{text_color}20" do %>
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50">
+          <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg>
+        </div>
+        <div>
+          <p class="font-semibold">Delivery</p>
+          <p class="mt-0.5 text-xs opacity-60">Delivered to your door</p>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Reserve table button %>
+  <%= link_to restaurant_reserve_path(slug: restaurant.slug),
+    class: "flex items-center justify-center gap-2 rounded-2xl border-2 p-4 text-center transition-shadow hover:shadow-md w-full",
+    style: "border-color: #{text_color}20" do %>
+    <svg class="h-5 w-5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    <span class="text-sm font-semibold">Book your table</span>
+  <% end %>
+</div>

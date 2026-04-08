@@ -1,0 +1,23 @@
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Floor View</h1>
+
+<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+  <% @tables.each do |data| %>
+    <% table = data[:table] %>
+    <% session = data[:session] %>
+    <% occupied = session.present? %>
+
+    <div class="rounded-2xl p-5 border-2 transition-colors
+      <%= occupied ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-white' %>">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-2xl font-bold <%= occupied ? 'text-amber-600' : 'text-gray-300' %>"><%= table.number %></span>
+        <div class="h-2.5 w-2.5 rounded-full <%= occupied ? 'bg-amber-500' : 'bg-gray-300' %>"></div>
+      </div>
+      <p class="text-xs text-gray-400"><%= table.capacity %> seats</p>
+      <% if occupied %>
+        <p class="mt-1 text-xs font-medium text-amber-700"><%= data[:members].size %> guests</p>
+      <% else %>
+        <p class="mt-1 text-xs text-gray-400">Available</p>
+      <% end %>
+    </div>
+  <% end %>
+</div>

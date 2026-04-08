@@ -1,0 +1,33 @@
+<%# locals: (restaurant:, subtitle: nil) %>
+<% theme = restaurant.theme || {} %>
+<% banner_url = theme["bannerImageUrl"].presence %>
+
+<div class="relative flex items-center justify-center overflow-hidden" style="height: 100dvh; background-color: #000000;" data-controller="hero-parallax">
+  <% if banner_url %>
+    <div class="absolute will-change-transform" style="inset: -20% 0; opacity: 0; transition: opacity 1.2s ease-out;" data-hero-parallax-target="image">
+      <img src="<%= banner_url %>" alt="" class="h-full w-full object-cover" data-hero-parallax-target="img" onload="this.parentElement.style.opacity='0.8'">
+    </div>
+    <div class="absolute inset-0" style="background-color: rgba(0, 0, 0, 0.25); opacity: 0; transition: opacity 1.2s ease-out;" data-hero-parallax-target="overlay"></div>
+  <% else %>
+    <div class="absolute inset-0" style="background-color: <%= theme["primaryColor"] || "#000" %>;"></div>
+  <% end %>
+
+  <%# Content — centered vertically, fades + lifts on scroll %>
+  <div class="relative z-10 flex flex-col items-center px-6 text-center text-white will-change-transform" data-hero-parallax-target="content">
+    <% if theme["logoUrl"].present? %>
+      <img src="<%= theme["logoUrl"] %>" alt="<%= restaurant.name %>" class="mb-5 max-h-28 max-w-40 object-contain">
+    <% end %>
+    <% if restaurant.tagline.present? %>
+      <p class="mt-3 text-lg font-light opacity-90 max-w-xs drop-shadow-md"><%= restaurant.tagline %></p>
+    <% end %>
+    <% if subtitle.present? %>
+      <p class="mt-2 text-sm font-medium opacity-70 drop-shadow"><%= subtitle %></p>
+    <% end %>
+  </div>
+
+  <%# Scroll indicator %>
+  <button class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 text-white/70 hover:text-white transition-colors" data-hero-parallax-target="scrollBtn">
+    <span class="text-xs font-medium tracking-wide uppercase">Menu</span>
+    <svg class="h-5 w-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+  </button>
+</div>

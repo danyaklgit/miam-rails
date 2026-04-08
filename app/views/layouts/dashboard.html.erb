@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dashboard — Miam</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+  </head>
+
+  <body class="min-h-screen bg-gray-50" data-controller="sidebar">
+    <div class="flex">
+      <%# Expandable sidebar %>
+      <aside data-sidebar-target="sidebar"
+        class="fixed inset-y-0 left-0 w-16 bg-white border-r border-gray-200 flex flex-col py-4 z-50 transition-all duration-200 overflow-hidden">
+
+        <%# Logo + toggle %>
+        <div class="flex items-center gap-3 px-4 mb-6">
+          <button data-action="click->sidebar#toggle" class="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-600 transition-colors cursor-pointer">
+            M
+          </button>
+          <span data-sidebar-target="logo" class="hidden text-lg font-bold text-gray-900 whitespace-nowrap">miam</span>
+        </div>
+
+        <%# Restaurant switcher %>
+        <% if @current_user_restaurants&.any? %>
+          <div class="px-3 mb-4" data-controller="restaurant-switcher">
+            <button data-action="click->restaurant-switcher#toggle"
+              class="flex items-center gap-2 w-full rounded-xl bg-gray-50 px-2.5 py-2 text-left hover:bg-gray-100 transition-colors cursor-pointer">
+              <div class="flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-600 text-xs font-bold">
+                <%= @restaurant&.name&.first&.upcase || "?" %>
+              </div>
+              <span class="text-xs font-semibold text-gray-900 truncate hidden" data-sidebar-target="label"><%= @restaurant&.name %></span>
+            </button>
+            <div data-restaurant-switcher-target="dropdown" class="hidden mt-1 rounded-xl bg-white border border-gray-200 shadow-lg overflow-hidden absolute left-3 right-3 z-50">
+              <% @current_user_restaurants.each do |r| %>
+                <%= button_to dashboard_switch_restaurant_path(restaurant_id: r.id), method: :post,
+                  class: "flex items-center gap-2 w-full px-3 py-2 text-left text-sm hover:bg-gray-50 #{r.id == @restaurant&.id ? 'bg-gray-50 font-semibold' : ''}" do %>
+                  <div class="flex h-6 w-6 items-center justify-center rounded-md bg-purple-100 text-purple-600 text-xs font-bold"><%= r.name.first.upcase %></div>
+                  <span class="truncate"><%= r.name %></span>
+                  <% if r.id == @restaurant&.id %>
+                    <svg class="ml-auto h-4 w-4 text-purple-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <% end %>
+                <% end %>
+              <% end %>
+              <div class="border-t border-gray-100">
+                <%= link_to new_dashboard_restaurant_path, class: "flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-500 hover:bg-gray-50" do %>
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>New restaurant</span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <%# Navigation %>
+        <nav class="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
+          <%
+            nav_items = [
+              { path: dashboard_path, match: :exact, icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6", label: "Overview" },
+              { path: dashboard_orders_path, icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2", label: "Orders" },
+              { path: dashboard_menu_path, icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", label: "Menu" },
+              { path: dashboard_tables_path, icon: "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z", label: "Tables" },
+              { path: dashboard_floor_path, icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4", label: "Floor" },
+              { path: dashboard_reservations_path, icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", label: "Reservations" },
+              { path: dashboard_offers_path, icon: "M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z", label: "Offers" },
+              { path: dashboard_analytics_path, icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z", label: "Analytics" },
+            ]
+          %>
+          <% nav_items.each do |item| %>
+            <% active = item[:match] == :exact ? request.path == item[:path] : request.path.start_with?(item[:path]) %>
+            <%= link_to item[:path], class: "flex items-center gap-3 px-2.5 py-2 rounded-xl transition-colors #{active ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}" do %>
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<%= item[:icon] %>"/></svg>
+              <span class="text-sm font-medium whitespace-nowrap hidden" data-sidebar-target="label"><%= item[:label] %></span>
+            <% end %>
+          <% end %>
+        </nav>
+
+        <%# Bottom: theme, settings, sign out %>
+        <div class="flex flex-col gap-1 px-3 pt-4 border-t border-gray-100">
+          <%= link_to edit_dashboard_theme_path, class: "flex items-center gap-3 px-2.5 py-2 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors" do %>
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+            <span class="text-sm font-medium whitespace-nowrap hidden" data-sidebar-target="label">Theme</span>
+          <% end %>
+          <%= link_to edit_dashboard_settings_path, class: "flex items-center gap-3 px-2.5 py-2 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors" do %>
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span class="text-sm font-medium whitespace-nowrap hidden" data-sidebar-target="label">Settings</span>
+          <% end %>
+          <%= link_to destroy_user_session_path, class: "flex items-center gap-3 px-2.5 py-2 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors" do %>
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            <span class="text-sm font-medium whitespace-nowrap hidden" data-sidebar-target="label">Sign out</span>
+          <% end %>
+        </div>
+      </aside>
+
+      <%# Main content %>
+      <main data-sidebar-target="main" data-controller="modal" class="ml-16 flex-1 p-6 transition-all duration-200">
+        <% if flash[:notice] %>
+          <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800"><%= flash[:notice] %></div>
+        <% end %>
+        <% if flash[:alert] %>
+          <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800"><%= flash[:alert] %></div>
+        <% end %>
+        <%= yield %>
+      </main>
+    </div>
+  </body>
+</html>

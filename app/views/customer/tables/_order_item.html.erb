@@ -1,0 +1,31 @@
+<%# locals: (item:, theme:) %>
+<%
+  primary_color = theme["primaryColor"] || "#000000"
+  text_color = theme["textColor"] || "#1f2937"
+  status_colors = {
+    "pending"   => { bg: "bg-gray-100", text: "text-gray-600" },
+    "ordered"   => { bg: "bg-red-100", text: "text-red-700" },
+    "preparing" => { bg: "bg-amber-100", text: "text-amber-700" },
+    "ready"     => { bg: "bg-green-100", text: "text-green-700" },
+    "served"    => { bg: "bg-gray-100", text: "text-gray-500" }
+  }
+  sc = status_colors[item.status] || status_colors["ordered"]
+%>
+
+<div id="<%= dom_id(item) %>" class="flex items-center justify-between rounded-xl border px-4 py-3 transition-all"
+  style="border-color: <%= text_color %>15"
+  data-order-status="<%= item.status %>">
+  <div class="flex items-center gap-3">
+    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-bold"><%= item.quantity %></span>
+    <div>
+      <p class="text-sm font-medium"><%= item.name %></p>
+      <% if item.variant_name.present? %>
+        <p class="text-xs opacity-50"><%= item.variant_name %></p>
+      <% end %>
+    </div>
+    <span class="rounded-full px-2 py-0.5 text-[10px] font-medium <%= sc[:bg] %> <%= sc[:text] %>"><%= item.status.capitalize %></span>
+  </div>
+  <p class="text-sm font-semibold" style="color: <%= primary_color %>">
+    €<%= ((item.price.to_f + (item.variant_price_modifier || 0).to_f) * (item.quantity || 1)).round(2) %>
+  </p>
+</div>

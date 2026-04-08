@@ -1,0 +1,20 @@
+<%# locals: (order:, order_items:, restaurant:, paid_amount: 0, table_number: nil) %>
+
+<div id="dinein-cart-drawer" class="fixed inset-0 z-50 hidden"
+  data-controller="cart-drawer"
+  data-cart-drawer-refresh-url-value="<%= table_number ? "/#{restaurant.slug}/table/#{table_number}/cart_drawer" : "" %>">
+  <div class="absolute inset-0 bg-black/50 transition-opacity" data-action="click->cart-drawer#close"></div>
+
+  <div class="absolute bottom-0 left-0 right-0 mx-auto max-w-lg rounded-t-3xl bg-white flex flex-col transition-transform duration-300 translate-y-full"
+    style="max-height: 85vh;"
+    data-cart-drawer-target="sheet">
+
+    <div data-cart-drawer-target="body">
+      <%= render "shared/dine_in_cart_drawer_content",
+        order: order,
+        order_items: order_items,
+        restaurant: restaurant,
+        paid_amount: paid_amount %>
+    </div>
+  </div>
+</div>

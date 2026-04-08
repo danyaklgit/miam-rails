@@ -1,0 +1,72 @@
+<%= turbo_stream_from "table_#{@table.id}" %>
+<%= turbo_stream_from "session_#{@session&.id}" if @session %>
+<%= turbo_stream_from "order_#{@order&.id}" if @order %>
+
+<%# Table-level signal — triggers page refresh for users who don't yet have an order subscription %>
+<div data-controller="table-sync">
+  <div id="table_refresh_signal" data-ts="<%= Time.current.to_i %>"></div>
+</div>
+
+<%# Hidden signal element — replaced by Turbo Stream when order status changes %>
+<div id="order_status_signal" data-status="<%= @order&.status %>" data-total="<%= @order&.total_amount %>" data-paid="<%= @order&.paid_amount %>"></div>
+
+<div class="min-h-screen pb-24"
+  data-controller="cart"
+  data-cart-mode-value="dineIn"
+  data-cart-restaurant-id-value="<%= @restaurant.id %>"
+  data-cart-table-number-value="<%= @table.number %>"
+  data-cart-session-id-value="<%= @session&.id %>"
+  data-cart-order-id-value="<%= @order&.id %>">
+  <%= render "shared/hero_banner",
+    restaurant: @restaurant,
+    subtitle: "Table #{@table.number}#{@members.any? ? " · #{@members.size} #{@members.size == 1 ? 'person' : 'people'}" : ''}" %>
+
+  <%= render "shared/menu_selector",
+    menus: @menus,
+    active_menu_id: @active_menu&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { "/#{@restaurant.slug}/table/#{@table.number}?#{opts.to_query}" } %>
+
+  <%= render "shared/category_tabs",
+    categories: @categories,
+    active_category_id: @active_category&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { "/#{@restaurant.slug}/table/#{@table.number}?menu_id=#{@active_menu&.id}&#{opts.to_query}" } %>
+
+  <%= render "shared/menu_items", items: @items, restaurant: @restaurant %>
+
+  <%# Order items — live-updated via Turbo Streams %>
+  <div class="mx-auto max-w-lg px-4 py-4">
+    <% if @order_items.any? %>
+      <h3 class="mb-3 text-sm font-bold uppercase tracking-wide opacity-50">Your order</h3>
+    <% end %>
+    <div id="order_items_list" class="space-y-2">
+      <% @order_items.each do |item| %>
+        <%= render "customer/tables/order_item", item: item, theme: @theme %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Cart FAB %>
+  <%= render "shared/cart_fab",
+    order: @order,
+    order_items: @order_items,
+    restaurant: @restaurant,
+    mode: "dineIn" %>
+
+  <%# Dine-in cart drawer %>
+  <%= render "shared/dine_in_cart_drawer",
+    order: @order,
+    order_items: @order_items,
+    restaurant: @restaurant,
+    paid_amount: @order&.paid_amount.to_f,
+    table_number: @table.number %>
+
+  <%# Payment flow %>
+  <% if @order %>
+    <%= render "shared/payment_flow",
+      order: @order,
+      order_items: @order_items,
+      restaurant: @restaurant %>
+  <% end %>
+</div>

@@ -1,0 +1,18 @@
+<%= render layout: "shared/modal_wrapper", locals: { id: "new-menu-modal", title: "New Menu" } do %>
+  <%= form_with url: dashboard_menus_path, class: "space-y-4" do |f| %>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input type="text" name="menu[name]" required placeholder="e.g. Main Menu"
+        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+      <textarea name="menu[description]" rows="2" placeholder="Optional description"
+        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black resize-none"></textarea>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 transition-colors">Create Menu</button>
+      <button type="button" data-action="click->modal#close" class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+    </div>
+  <% end %>
+<% end %>

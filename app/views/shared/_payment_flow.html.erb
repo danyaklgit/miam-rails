@@ -1,0 +1,211 @@
+<%# locals: (order:, order_items:, restaurant:) %>
+<% theme = restaurant.theme || {} %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+<% total = order&.total_amount.to_f %>
+<% paid = order&.paid_amount.to_f %>
+<% left_to_pay = [total - paid, 0].max %>
+
+<div id="payment-flow" class="fixed inset-0 z-50 hidden" data-controller="payment-flow"
+  data-payment-flow-order-id-value="<%= order&.id %>"
+  data-payment-flow-total-value="<%= total %>"
+  data-payment-flow-paid-value="<%= paid %>"
+  data-payment-flow-left-value="<%= left_to_pay %>"
+  data-payment-flow-slug-value="<%= restaurant.slug %>"
+  data-payment-flow-primary-color-value="<%= primary_color %>">
+
+  <div class="absolute inset-0 bg-black/50" data-action="click->payment-flow#close"></div>
+
+  <div class="absolute bottom-0 left-0 right-0 mx-auto max-w-lg rounded-t-3xl bg-white transition-transform duration-300 translate-y-full"
+    style="max-height: 90vh; overflow-y: auto;"
+    data-payment-flow-target="sheet">
+
+    <%# Header %>
+    <div class="flex items-center justify-between border-b px-5 py-4">
+      <h2 class="text-lg font-bold" data-payment-flow-target="title">Pay your bill</h2>
+      <button data-action="click->payment-flow#close" class="rounded-full bg-gray-100 p-2">
+        <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="px-5 py-4" data-payment-flow-target="content">
+      <%# Step 1: Split options %>
+      <div data-payment-flow-target="stepSplit">
+        <p class="text-sm text-gray-500 mb-4">Remaining: <strong>€<%= left_to_pay.round(2) %></strong></p>
+        <div class="space-y-3">
+          <button data-action="click->payment-flow#selectSplit" data-split="full"
+            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-lg">💳</div>
+            <div>
+              <p class="font-semibold">Pay full bill</p>
+              <p class="text-sm text-gray-500">€<%= left_to_pay.round(2) %></p>
+            </div>
+          </button>
+          <button data-action="click->payment-flow#selectSplit" data-split="items"
+            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">🍽</div>
+            <div>
+              <p class="font-semibold">Pay for your items</p>
+              <p class="text-sm text-gray-500">Select which items to pay for</p>
+            </div>
+          </button>
+          <button data-action="click->payment-flow#selectSplit" data-split="equal"
+            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-lg">👥</div>
+            <div>
+              <p class="font-semibold">Divide equally</p>
+              <p class="text-sm text-gray-500">Split the bill evenly</p>
+            </div>
+          </button>
+          <button data-action="click->payment-flow#selectSplit" data-split="custom"
+            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-lg">✏️</div>
+            <div>
+              <p class="font-semibold">Custom amount</p>
+              <p class="text-sm text-gray-500">Enter any amount</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <%# Step 2a: Select items %>
+      <div data-payment-flow-target="stepItems" class="hidden">
+        <p class="text-sm text-gray-500 mb-4">Select items to pay for:</p>
+        <div class="space-y-2" data-payment-flow-target="itemsList">
+          <% (order_items || []).each do |item| %>
+            <% next if item.paid_by.present? %>
+            <% unit_price = item.price.to_f + (item.variant_price_modifier || 0).to_f %>
+            <% (item.quantity || 1).times do |qi| %>
+              <label class="flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition-colors has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50">
+                <input type="checkbox" data-action="change->payment-flow#updateItemTotal"
+                  data-item-id="<%= item.id %>" data-unit-price="<%= unit_price %>"
+                  class="h-4 w-4 rounded border-gray-300">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium"><%= item.name %></p>
+                  <% if item.variant_name.present? %><p class="text-xs text-gray-400"><%= item.variant_name %></p><% end %>
+                </div>
+                <span class="text-sm font-semibold">€<%= unit_price.round(2) %></span>
+              </label>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="mt-4 flex items-center justify-between border-t pt-4">
+          <span class="font-semibold">Selected total:</span>
+          <span class="text-lg font-bold" data-payment-flow-target="itemsTotal">€0.00</span>
+        </div>
+        <button data-action="click->payment-flow#confirmItems"
+          class="mt-4 w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>">
+          Continue to tip
+        </button>
+        <button data-action="click->payment-flow#backToSplit" class="mt-2 w-full text-center text-sm text-gray-500 hover:text-gray-700">← Back</button>
+      </div>
+
+      <%# Step 2b: Equal split %>
+      <div data-payment-flow-target="stepEqual" class="hidden">
+        <div class="text-center py-6">
+          <p class="text-sm text-gray-500 mb-2">Your share</p>
+          <p class="text-4xl font-bold" data-payment-flow-target="equalAmount">€0.00</p>
+        </div>
+        <div class="flex items-center justify-center gap-6 mb-6">
+          <button data-action="click->payment-flow#decrementPeople"
+            class="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-500 hover:border-gray-400">−</button>
+          <div class="text-center">
+            <p class="text-2xl font-bold" data-payment-flow-target="peopleCount">1</p>
+            <p class="text-xs text-gray-500">person(s)</p>
+          </div>
+          <button data-action="click->payment-flow#incrementPeople"
+            class="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-500 hover:border-gray-400">+</button>
+        </div>
+        <button data-action="click->payment-flow#confirmEqual"
+          class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>">
+          Continue to tip
+        </button>
+        <button data-action="click->payment-flow#backToSplit" class="mt-2 w-full text-center text-sm text-gray-500 hover:text-gray-700">← Back</button>
+      </div>
+
+      <%# Step 2c: Custom amount %>
+      <div data-payment-flow-target="stepCustom" class="hidden">
+        <div class="text-center py-6">
+          <p class="text-sm text-gray-500 mb-2">Enter amount</p>
+          <div class="flex items-center justify-center gap-1">
+            <span class="text-2xl font-bold text-gray-400">€</span>
+            <input type="number" step="0.01" min="0.01" max="<%= left_to_pay %>"
+              data-payment-flow-target="customInput"
+              class="w-32 text-center text-4xl font-bold outline-none" placeholder="0.00">
+          </div>
+          <p class="mt-2 text-xs text-gray-400">Max: €<%= left_to_pay.round(2) %></p>
+        </div>
+        <button data-action="click->payment-flow#confirmCustom"
+          class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>">
+          Continue to tip
+        </button>
+        <button data-action="click->payment-flow#backToSplit" class="mt-2 w-full text-center text-sm text-gray-500 hover:text-gray-700">← Back</button>
+      </div>
+
+      <%# Step 3: Tip %>
+      <div data-payment-flow-target="stepTip" class="hidden">
+        <div class="text-center py-4">
+          <p class="text-sm text-gray-500 mb-1">Bill amount</p>
+          <p class="text-2xl font-bold" data-payment-flow-target="billAmount">€0.00</p>
+        </div>
+        <p class="text-sm font-medium text-gray-700 mb-3">Add a tip?</p>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <% [{ pct: 10, emoji: "😊" }, { pct: 15, emoji: "😄" }, { pct: 20, emoji: "🤩" }].each do |preset| %>
+            <button data-action="click->payment-flow#selectTip" data-tip-pct="<%= preset[:pct] %>"
+              data-payment-flow-target="tipBtn"
+              class="flex-1 rounded-xl border-2 border-gray-200 py-3 text-center transition-colors hover:border-gray-400">
+              <span class="text-lg"><%= preset[:emoji] %></span>
+              <p class="text-sm font-semibold"><%= preset[:pct] %>%</p>
+            </button>
+          <% end %>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <button data-action="click->payment-flow#selectCustomTip" data-payment-flow-target="tipBtn"
+            class="flex-1 rounded-xl border-2 border-gray-200 py-3 text-center text-sm font-medium transition-colors hover:border-gray-400">
+            Custom
+          </button>
+          <button data-action="click->payment-flow#selectTip" data-tip-pct="0" data-payment-flow-target="tipBtn"
+            class="flex-1 rounded-xl border-2 border-gray-200 py-3 text-center text-sm font-medium transition-colors hover:border-gray-400">
+            No tip
+          </button>
+        </div>
+        <div data-payment-flow-target="customTipSection" class="hidden mb-4">
+          <input type="number" step="0.50" min="0" placeholder="Tip amount (€)"
+            data-payment-flow-target="customTipInput" data-action="input->payment-flow#updateCustomTip"
+            class="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-sm outline-none focus:border-gray-400">
+        </div>
+        <div class="border-t pt-4 mb-4">
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-500">Bill</span>
+            <span data-payment-flow-target="tipBillDisplay">€0.00</span>
+          </div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-500">Tip</span>
+            <span data-payment-flow-target="tipAmountDisplay">€0.00</span>
+          </div>
+          <div class="flex justify-between font-bold text-lg">
+            <span>Total</span>
+            <span data-payment-flow-target="tipTotalDisplay">€0.00</span>
+          </div>
+        </div>
+        <button data-action="click->payment-flow#pay"
+          class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>"
+          data-payment-flow-target="payButton">
+          Pay
+        </button>
+      </div>
+
+      <%# Step 4: Done %>
+      <div data-payment-flow-target="stepDone" class="hidden text-center py-6">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white">
+          <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-1">Payment successful!</h3>
+        <p class="text-sm text-gray-500" data-payment-flow-target="doneMessage">Thank you</p>
+        <button data-action="click->payment-flow#close"
+          class="mt-6 w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

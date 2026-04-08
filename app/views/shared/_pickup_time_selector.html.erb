@@ -1,0 +1,43 @@
+<%# locals: (field_name: "pickup_time", theme: {}) %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+<%
+  # Generate time slots from now + 15min, in 15-min increments, up to 3 hours
+  now = Time.current
+  prep_buffer = 15.minutes
+  start_time = now + prep_buffer
+  # Round up to next 15-min mark
+  mins = start_time.min
+  rounded = (mins / 15.0).ceil * 15
+  start_time = start_time.change(min: 0) + rounded.minutes
+
+  slots = []
+  12.times do |i|
+    slot_time = start_time + (i * 15).minutes
+    slots << { value: slot_time.strftime("%H:%M"), label: slot_time.strftime("%H:%M") }
+  end
+%>
+
+<section data-controller="pickup-time">
+  <h2 class="mb-3 text-sm font-bold uppercase tracking-wide opacity-50">Pickup time</h2>
+  <div class="flex flex-wrap gap-2">
+    <button type="button"
+      data-action="click->pickup-time#select"
+      data-pickup-time-value-param="asap"
+      class="rounded-xl border-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+      data-pickup-time-target="option"
+      style="border-color: <%= primary_color %>; background-color: <%= primary_color %>; color: #fff;">
+      ASAP
+    </button>
+    <% slots.each do |slot| %>
+      <button type="button"
+        data-action="click->pickup-time#select"
+        data-pickup-time-value-param="<%= slot[:value] %>"
+        data-pickup-time-target="option"
+        class="rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-colors"
+        style="border-color: <%= primary_color %>20">
+        <%= slot[:label] %>
+      </button>
+    <% end %>
+  </div>
+  <input type="hidden" name="<%= field_name %>" data-pickup-time-target="input" value="asap">
+</section>

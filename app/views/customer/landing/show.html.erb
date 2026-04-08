@@ -1,0 +1,21 @@
+<div class="min-h-screen pb-24">
+  <%= render "shared/hero_banner", restaurant: @restaurant %>
+
+  <%= render "shared/opening_hours", hours: @restaurant.hours, theme: @theme %>
+
+  <%= render "shared/order_type_selector", restaurant: @restaurant %>
+
+  <%= render "shared/menu_selector",
+    menus: @menus,
+    active_menu_id: @active_menu&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { restaurant_path(slug: @restaurant.slug, **opts) } %>
+
+  <%= render "shared/category_tabs",
+    categories: @categories,
+    active_category_id: @active_category&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { restaurant_path(slug: @restaurant.slug, menu_id: @active_menu&.id, **opts) } %>
+
+  <%= render "shared/menu_items", items: @items, restaurant: @restaurant %>
+</div>

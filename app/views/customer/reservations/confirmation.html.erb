@@ -1,0 +1,63 @@
+<div class="min-h-screen bg-gray-50 px-4 pb-12">
+  <div class="mx-auto max-w-lg pt-12">
+    <div class="rounded-2xl bg-white p-8 shadow-sm text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white">
+        <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Reservation Confirmed!</h1>
+      <p class="text-sm text-gray-500 mb-6">Your table at <%= @restaurant.name %> has been reserved</p>
+
+      <div class="space-y-3 rounded-xl bg-gray-50 p-4 text-left mb-6">
+        <div class="flex items-center gap-3">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <div>
+            <p class="text-xs text-gray-500">Date</p>
+            <p class="font-medium text-gray-900"><%= Date.parse(@reservation.date).strftime("%A, %B %d, %Y") %></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div>
+            <p class="text-xs text-gray-500">Time</p>
+            <p class="font-medium text-gray-900"><%= @reservation.time %></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <svg class="h-5 w-5" style="color: var(--miam-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <div>
+            <p class="text-xs text-gray-500">Party Size</p>
+            <p class="font-medium text-gray-900"><%= @reservation.party_size %> <%= @reservation.party_size == 1 ? "guest" : "guests" %></p>
+          </div>
+        </div>
+        <div class="border-t border-gray-200 pt-3">
+          <p class="text-xs text-gray-500">Name</p>
+          <p class="font-medium text-gray-900"><%= @reservation.customer_name %></p>
+        </div>
+        <% if @reservation.notes.present? %>
+          <div>
+            <p class="text-xs text-gray-500">Special Requests</p>
+            <p class="text-sm text-gray-700"><%= @reservation.notes %></p>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="flex items-center justify-center gap-3">
+        <%= link_to restaurant_path(slug: @restaurant.slug),
+          class: "inline-block rounded-xl px-6 py-3 text-sm font-semibold text-white",
+          style: "background-color: var(--miam-primary)" do %>
+          Back to restaurant
+        <% end %>
+
+        <% if @reservation.status.in?(%w[pending confirmed]) %>
+          <%= button_to "/api/reservations/#{@reservation.id}",
+            method: :delete,
+            class: "rounded-xl border border-red-200 bg-red-50 px-6 py-3 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors cursor-pointer",
+            data: { turbo_confirm: "Are you sure you want to cancel this reservation?" } do %>
+            Cancel reservation
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+<div class="min-h-screen pb-24"
+  data-controller="cart"
+  data-cart-mode-value="takeaway"
+  data-cart-restaurant-id-value="<%= @restaurant.id %>">
+  <%# Header %>
+  <div class="px-4 pb-4 pt-6" style="background-color: <%= @theme['primaryColor'] %>">
+    <div class="mx-auto max-w-lg">
+      <%= link_to restaurant_path(slug: @restaurant.slug), class: "mb-3 inline-block text-sm font-medium text-white/80 hover:text-white" do %>
+        &larr; Back
+      <% end %>
+      <div class="flex items-center gap-3">
+        <% if @theme["logoUrl"].present? %>
+          <img src="<%= @theme["logoUrl"] %>" alt="<%= @restaurant.name %>" class="h-10 max-w-14 object-contain">
+        <% end %>
+        <div>
+          <h1 class="text-lg font-bold text-white"><%= @restaurant.name %></h1>
+          <p class="text-sm font-medium text-white/70">
+            <%= @order_type == "delivery" ? "Delivery" : "Takeaway" %> order
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%= render "shared/menu_selector",
+    menus: @menus,
+    active_menu_id: @active_menu&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { restaurant_menu_path(slug: @restaurant.slug, type: @order_type, **opts) } %>
+
+  <%= render "shared/category_tabs",
+    categories: @categories,
+    active_category_id: @active_category&.id,
+    restaurant: @restaurant,
+    url_base: ->(opts) { restaurant_menu_path(slug: @restaurant.slug, type: @order_type, menu_id: @active_menu&.id, **opts) } %>
+
+  <%= render "shared/menu_items", items: @items, restaurant: @restaurant %>
+
+  <%# Cart FAB %>
+  <%= render "shared/cart_fab",
+    order: nil,
+    order_items: [],
+    restaurant: @restaurant,
+    mode: "takeaway",
+    cart_count: @cart_count,
+    cart_subtotal: @cart_subtotal %>
+
+  <%# Takeaway cart drawer %>
+  <%= render "shared/takeaway_cart_drawer",
+    cart_items: @cart["items"],
+    subtotal: @cart_subtotal,
+    restaurant: @restaurant %>
+</div>

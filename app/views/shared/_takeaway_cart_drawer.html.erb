@@ -1,0 +1,82 @@
+<%# locals: (cart_items:, subtotal:, restaurant:) %>
+<% theme = restaurant.theme || {} %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+
+<div id="takeaway-cart-drawer" class="fixed inset-0 z-50 hidden" data-controller="cart-drawer">
+  <%# Backdrop %>
+  <div class="absolute inset-0 bg-black/50 transition-opacity" data-action="click->cart-drawer#close"></div>
+
+  <%# Bottom sheet %>
+  <div class="absolute bottom-0 left-0 right-0 mx-auto max-w-lg rounded-t-3xl bg-white flex flex-col transition-transform duration-300 translate-y-full"
+    style="max-height: 85vh;"
+    data-cart-drawer-target="sheet">
+
+    <%# Header %>
+    <div class="flex items-center justify-between border-b px-5 py-4" style="border-color: <%= text_color %>10">
+      <h2 class="text-lg font-bold">Your Cart</h2>
+      <button data-action="click->cart-drawer#close" class="rounded-full bg-gray-100 p-2">
+        <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <%# Items (scrollable) %>
+    <div class="flex-1 overflow-y-auto px-5 py-3">
+      <% if cart_items.empty? %>
+        <p class="py-8 text-center text-sm opacity-50">Your cart is empty</p>
+      <% else %>
+        <div class="space-y-3">
+          <% cart_items.each_with_index do |item, idx| %>
+            <% unit_price = item["price"].to_f + (item["variantPriceModifier"] || 0).to_f %>
+            <% qty = item["quantity"] || 1 %>
+            <div class="flex items-center gap-3 rounded-xl border p-3" style="border-color: <%= text_color %>10">
+              <%# Quantity controls %>
+              <div class="flex items-center gap-1.5 rounded-lg border" style="border-color: <%= text_color %>15">
+                <button class="px-2 py-1 text-sm font-bold text-gray-400 hover:text-gray-700"
+                  data-action="click->cart-drawer#decrement" data-index="<%= idx %>">−</button>
+                <span class="w-5 text-center text-sm font-semibold"><%= qty %></span>
+                <button class="px-2 py-1 text-sm font-bold text-gray-400 hover:text-gray-700"
+                  data-action="click->cart-drawer#increment" data-index="<%= idx %>">+</button>
+              </div>
+
+              <%# Item info %>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold truncate"><%= item["name"] %></p>
+                <% if item["variantName"].present? %>
+                  <p class="text-xs opacity-50"><%= item["variantName"] %></p>
+                <% end %>
+                <% if item["notes"].present? %>
+                  <p class="text-xs italic opacity-50 mt-0.5"><%= item["notes"] %></p>
+                <% end %>
+              </div>
+
+              <%# Price + remove %>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold" style="color: <%= primary_color %>">€<%= (unit_price * qty).round(2) %></span>
+                <button class="text-gray-300 hover:text-red-500 transition-colors"
+                  data-action="click->cart-drawer#remove" data-index="<%= idx %>">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Footer %>
+    <% if cart_items.any? %>
+      <div class="border-t px-5 py-4" style="border-color: <%= text_color %>10">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm opacity-60">Subtotal</span>
+          <span class="text-lg font-bold">€<%= subtotal.round(2) %></span>
+        </div>
+        <%= link_to restaurant_checkout_path(slug: restaurant.slug),
+          class: "block w-full rounded-2xl py-4 text-center text-sm font-bold text-white transition-opacity hover:opacity-90",
+          style: "background-color: #{primary_color}" do %>
+          Proceed to checkout · €<%= subtotal.round(2) %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

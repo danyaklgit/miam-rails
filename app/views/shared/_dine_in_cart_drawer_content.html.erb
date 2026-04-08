@@ -1,0 +1,170 @@
+<%# locals: (order:, order_items:, restaurant:, paid_amount: 0) %>
+<% theme = restaurant.theme || {} %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+<% pending_items = order_items.select { |i| i.status == "pending" } %>
+<% confirmed_items = order_items.reject { |i| i.status == "pending" } %>
+<%
+  status_config = {
+    "ordered"   => { color: "#ef4444", label: "Ordered" },
+    "preparing" => { color: "#f59e0b", label: "Preparing" },
+    "ready"     => { color: "#10b981", label: "Ready" },
+    "served"    => { color: "#6b7280", label: "Served" }
+  }
+  person_colors = %w[#7c3aed #3b82f6 #ef4444 #10b981 #f59e0b #ec4899 #06b6d4 #8b5cf6]
+  orderers = order_items.map(&:ordered_by).uniq
+%>
+
+<%# Header %>
+<div class="flex items-center justify-between border-b px-5 py-4" style="border-color: <%= text_color %>10">
+  <% drawer_fully_paid = order && order.total_amount.to_f > 0 && paid_amount.to_f >= order.total_amount.to_f %>
+  <h2 class="text-lg font-bold"><%= drawer_fully_paid ? "Receipt" : "Table Order" %></h2>
+  <button data-action="click->cart-drawer#close" class="rounded-full bg-gray-100 p-2">
+    <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+  </button>
+</div>
+
+<%# Payment progress bar %>
+<% if order && order.paid_amount.to_f > 0 %>
+  <% progress = [(order.paid_amount.to_f / [order.total_amount.to_f, 0.01].max * 100), 100].min %>
+  <div class="px-5 py-2">
+    <div class="flex items-center justify-between text-xs mb-1">
+      <span class="opacity-50">Paid</span>
+      <span class="font-semibold text-green-600">€<%= order.paid_amount.to_f.round(2) %> / €<%= order.total_amount.to_f.round(2) %></span>
+    </div>
+    <div class="h-1.5 rounded-full bg-gray-100">
+      <div class="h-1.5 rounded-full bg-green-500 transition-all" style="width: <%= progress %>%"></div>
+    </div>
+  </div>
+<% end %>
+
+<%# Items (scrollable) %>
+<div class="flex-1 overflow-y-auto px-5 py-3">
+  <%# Pending items (not sent to kitchen) %>
+  <% if pending_items.any? %>
+    <div class="mb-4">
+      <p class="mb-2 text-xs font-bold uppercase tracking-wide opacity-40">Not sent yet</p>
+      <div class="space-y-2">
+        <% pending_items.each do |item| %>
+          <div class="flex items-center gap-3 rounded-xl border-2 border-dashed p-3" style="border-color: <%= text_color %>20">
+            <% person_idx = orderers.index(item.ordered_by) || 0 %>
+            <div class="h-2 w-2 rounded-full shrink-0" style="background-color: <%= person_colors[person_idx % person_colors.size] %>"></div>
+            <%# Quantity controls %>
+            <div class="flex items-center gap-1.5 rounded-lg border shrink-0" style="border-color: <%= text_color %>15">
+              <button class="px-2 py-1 text-sm font-bold text-gray-400 hover:text-gray-700"
+                data-action="click->cart-drawer#decrementDineIn" data-item-id="<%= item.id %>" data-qty="<%= item.quantity %>">−</button>
+              <span class="w-5 text-center text-sm font-semibold"><%= item.quantity %></span>
+              <button class="px-2 py-1 text-sm font-bold text-gray-400 hover:text-gray-700"
+                data-action="click->cart-drawer#incrementDineIn" data-item-id="<%= item.id %>" data-qty="<%= item.quantity %>">+</button>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium"><%= item.name %></p>
+              <% if item.variant_name.present? %><p class="text-xs opacity-50"><%= item.variant_name %></p><% end %>
+              <% if item.notes.present? %><p class="text-xs italic opacity-50"><%= item.notes %></p><% end %>
+            </div>
+            <span class="text-sm font-medium" style="color: <%= primary_color %>">€<%= ((item.price.to_f + (item.variant_price_modifier || 0).to_f) * (item.quantity || 1)).round(2) %></span>
+            <button class="text-gray-300 hover:text-red-500 transition-colors"
+              data-action="click->cart-drawer#removeItem" data-item-id="<%= item.id %>">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Confirmed items grouped by status %>
+  <% if confirmed_items.any? %>
+    <% confirmed_items.group_by(&:status).each do |status, items| %>
+      <% cfg = status_config[status] || { color: "#6b7280", label: status.capitalize } %>
+      <div class="mb-4">
+        <p class="mb-2 text-xs font-bold uppercase tracking-wide" style="color: <%= cfg[:color] %>"><%= cfg[:label] %></p>
+        <div class="space-y-1.5">
+          <% items.each do |item| %>
+            <% person_idx = orderers.index(item.ordered_by) || 0 %>
+            <% is_paid = item.paid_by.present? %>
+            <div class="flex items-center gap-3 rounded-xl p-3 <%= is_paid ? 'opacity-50' : '' %>"
+              style="border-left: 3px solid <%= cfg[:color] %>; background-color: <%= cfg[:color] %>08">
+              <div class="h-2 w-2 rounded-full shrink-0" style="background-color: <%= person_colors[person_idx % person_colors.size] %>"></div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium <%= is_paid ? 'line-through' : '' %>"><%= item.quantity %>&times; <%= item.name %></p>
+                <% if item.variant_name.present? %><p class="text-xs opacity-50"><%= item.variant_name %></p><% end %>
+              </div>
+              <span class="text-sm font-medium <%= is_paid ? 'line-through' : '' %>">€<%= ((item.price.to_f + (item.variant_price_modifier || 0).to_f) * (item.quantity || 1)).round(2) %></span>
+              <% if is_paid %>
+                <svg class="h-4 w-4 text-green-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if order_items.empty? %>
+    <p class="py-8 text-center text-sm opacity-50">No items yet — browse the menu to add</p>
+  <% end %>
+</div>
+
+<%# Footer %>
+<%
+  order_total = order&.total_amount.to_f
+  paid_amt = paid_amount.to_f
+  left_to_pay = [order_total - paid_amt, 0].max
+  fully_paid = order_total > 0 && paid_amt >= order_total
+  all_confirmed_served = confirmed_items.any? && confirmed_items.all? { |i| i.status == "served" }
+%>
+<% if order_items.any? %>
+  <div class="border-t px-5 py-4" style="border-color: <%= text_color %>10">
+    <% if fully_paid %>
+      <%# Fully paid — show totals + done button %>
+      <div class="space-y-1 mb-3">
+        <div class="flex justify-between text-sm">
+          <span class="opacity-60">Subtotal</span>
+          <span>€<%= order_total.round(2) %></span>
+        </div>
+        <% if order&.tip_amount.to_f > 0 %>
+          <div class="flex justify-between text-sm">
+            <span class="opacity-60">Tip</span>
+            <span>€<%= order.tip_amount.to_f.round(2) %></span>
+          </div>
+        <% end %>
+        <div class="flex justify-between font-bold text-lg">
+          <span>Total Paid</span>
+          <span class="text-green-600">€<%= (paid_amt + order&.tip_amount.to_f).round(2) %></span>
+        </div>
+      </div>
+      <button class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+        style="background-color: #059669"
+        data-action="click->cart-drawer#close">
+        Done
+      </button>
+    <% else %>
+      <%# Not fully paid %>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm opacity-60">Total</span>
+        <span class="text-lg font-bold">€<%= order_total.round(2) %></span>
+      </div>
+      <% if paid_amt > 0 && left_to_pay > 0 %>
+        <p class="text-sm mb-3" style="color: <%= primary_color %>">Left to pay: €<%= left_to_pay.round(2) %></p>
+      <% end %>
+
+      <% if pending_items.any? %>
+        <%# Has pending items — show "Send to kitchen" button %>
+        <button class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+          style="background-color: <%= primary_color %>"
+          data-action="click->cart-drawer#confirmOrder"
+          data-order-id="<%= order&.id %>">
+          Send <%= pending_items.size %> item<%= pending_items.size == 1 ? '' : 's' %> to kitchen
+        </button>
+      <% elsif all_confirmed_served && left_to_pay > 0 %>
+        <%# All confirmed items served — show pay button %>
+        <button class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white transition-opacity hover:opacity-90"
+          style="background-color: <%= primary_color %>"
+          data-action="click->cart-drawer#openPayment">
+          Pay or split bill · €<%= left_to_pay.round(2) %>
+        </button>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,122 @@
+<%
+  prev_date = (Date.parse(@date) - 1.day).to_s
+  next_date = (Date.parse(@date) + 1.day).to_s
+  is_today = @date == Date.current.to_s
+  date_label = is_today ? "Today" : Date.parse(@date).strftime("%A, %b %d")
+%>
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Reservations</h1>
+  <button class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+    data-action="click->modal#open" data-modal-id-param="new-reservation-modal">
+    + New Reservation
+  </button>
+  <div class="flex items-center gap-3">
+    <%= link_to dashboard_reservations_path(date: prev_date), class: "p-2 rounded-lg hover:bg-gray-100" do %>
+      <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <% end %>
+    <span class="text-sm font-semibold text-gray-900"><%= date_label %></span>
+    <%= link_to dashboard_reservations_path(date: next_date), class: "p-2 rounded-lg hover:bg-gray-100" do %>
+      <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <% end %>
+  </div>
+</div>
+
+<div class="rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden">
+  <% if @reservations.any? %>
+    <table class="w-full">
+      <thead class="bg-gray-50 text-left text-xs font-medium uppercase text-gray-500">
+        <tr>
+          <th class="px-6 py-3">Time</th>
+          <th class="px-6 py-3">Guest</th>
+          <th class="px-6 py-3">Party</th>
+          <th class="px-6 py-3">Status</th>
+          <th class="px-6 py-3">Phone</th>
+          <th class="px-6 py-3">Notes</th>
+          <th class="px-6 py-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @reservations.each do |res| %>
+          <% status_class = case res.status
+            when "confirmed" then "bg-blue-100 text-blue-800"
+            when "seated" then "bg-green-100 text-green-800"
+            when "completed" then "bg-gray-100 text-gray-500"
+            when "cancelled", "noShow" then "bg-red-100 text-red-800"
+            else "bg-amber-100 text-amber-800"
+          end %>
+          <tr>
+            <td class="px-6 py-4 text-sm font-semibold text-gray-900"><%= res.time %></td>
+            <td class="px-6 py-4 text-sm text-gray-900"><%= res.customer_name %></td>
+            <td class="px-6 py-4 text-sm text-gray-500"><%= res.party_size %></td>
+            <td class="px-6 py-4">
+              <span class="rounded-full px-2.5 py-0.5 text-xs font-medium <%= status_class %>"><%= res.status %></span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500"><%= res.customer_phone %></td>
+            <td class="px-6 py-4 text-sm text-gray-400 max-w-32 truncate"><%= res.notes %></td>
+            <td class="px-6 py-4">
+              <div class="flex gap-1">
+                <% if res.status.in?(%w[pending confirmed]) %>
+                  <%= button_to "Seat", dashboard_reservation_path(res, status: "seated", date: @date), method: :patch,
+                    class: "rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-500" %>
+                <% elsif res.status == "seated" %>
+                  <%= button_to "Complete", dashboard_reservation_path(res, status: "completed", date: @date), method: :patch,
+                    class: "rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-500" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div class="p-12 text-center text-gray-400">No reservations for this date</div>
+  <% end %>
+</div>
+
+<%# New Reservation Modal %>
+<%= render layout: "shared/modal_wrapper", locals: { id: "new-reservation-modal", title: "New Reservation" } do %>
+  <%= form_with url: restaurant_reserve_path(slug: @restaurant.slug), method: :post, class: "space-y-4" do %>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+        <input type="text" name="customer_name" required placeholder="Guest name"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+        <input type="tel" name="customer_phone" placeholder="+32 470 00 00 00"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="customer_email" placeholder="email@example.com"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+        <input type="date" name="date" required value="<%= @date %>" min="<%= Date.current.to_s %>"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Time *</label>
+        <input type="time" name="time" required
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Party Size *</label>
+        <input type="number" name="party_size" required min="1" max="50" value="2"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <textarea name="notes" rows="2" placeholder="Special requests..."
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black resize-none"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 transition-colors">Create Reservation</button>
+      <button type="button" data-action="click->modal#close" class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
+    </div>
+  <% end %>
+<% end %>

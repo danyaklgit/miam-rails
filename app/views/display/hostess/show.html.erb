@@ -1,0 +1,160 @@
+<%= turbo_stream_from "restaurant_#{@restaurant.id}" %>
+
+<%
+  status_styles = {
+    "pending"   => { color: "#d97706", bg: "#d9770615", label: "Pending" },
+    "confirmed" => { color: "#3b82f6", bg: "#3b82f615", label: "Confirmed" },
+    "seated"    => { color: "#059669", bg: "#05966915", label: "Seated" },
+    "completed" => { color: "#6b7280", bg: "#6b728015", label: "Completed" },
+    "cancelled" => { color: "#dc2626", bg: "#dc262615", label: "Cancelled" },
+    "noShow"    => { color: "#f59e0b", bg: "#f59e0b15", label: "No-show" }
+  }
+  prev_date = (Date.parse(@date) - 1.day).to_s
+  next_date = (Date.parse(@date) + 1.day).to_s
+  is_today = @date == Date.current.to_s
+  is_tomorrow = @date == Date.tomorrow.to_s
+  date_label = is_today ? "Today" : is_tomorrow ? "Tomorrow" : Date.parse(@date).strftime("%a, %b %d")
+%>
+
+<div class="min-h-screen bg-gray-950" data-controller="auto-refresh hostess-date-nav"
+  data-auto-refresh-interval-value="15000"
+  data-auto-refresh-url-value="<%= request.path %>?date=<%= @date %>&tab=<%= @tab %>">
+
+  <%# Sticky header %>
+  <div class="sticky top-0 z-30 bg-gray-900 border-b border-gray-800">
+    <div class="px-4 py-3">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl font-bold text-white">Hostess</h1>
+          <button data-action="click->accordion#toggle" class="rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors" data-controller="accordion">
+            Walk-in / Book
+            <div data-accordion-target="content" class="hidden fixed left-0 right-0 top-full mt-2 z-50">
+              <div class="mx-4 rounded-xl bg-gray-800 border border-gray-700 p-4 shadow-xl">
+                <%= form_with url: restaurant_reserve_path(slug: @restaurant.slug), method: :post, class: "flex flex-wrap items-end gap-3" do %>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Name *</label>
+                    <input type="text" name="customer_name" required placeholder="Guest name"
+                      class="w-44 rounded-lg bg-gray-900 border border-gray-700 px-3 py-1.5 text-sm text-white outline-none focus:border-gray-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Phone</label>
+                    <input type="tel" name="customer_phone" placeholder="Phone"
+                      class="w-36 rounded-lg bg-gray-900 border border-gray-700 px-3 py-1.5 text-sm text-white outline-none focus:border-gray-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Time</label>
+                    <input type="time" name="time" value="<%= Time.current.strftime("%H:%M") %>"
+                      class="w-28 rounded-lg bg-gray-900 border border-gray-700 px-3 py-1.5 text-sm text-white outline-none focus:border-gray-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Guests</label>
+                    <input type="number" name="party_size" min="1" max="50" value="2"
+                      class="w-20 rounded-lg bg-gray-900 border border-gray-700 px-3 py-1.5 text-sm text-white outline-none focus:border-gray-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Notes</label>
+                    <input type="text" name="notes" placeholder="Notes"
+                      class="w-40 rounded-lg bg-gray-900 border border-gray-700 px-3 py-1.5 text-sm text-white outline-none focus:border-gray-500">
+                  </div>
+                  <input type="hidden" name="date" value="<%= @date %>">
+                  <button type="submit" class="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-500 transition-colors">
+                    Add
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= link_to request.path + "?date=#{prev_date}&tab=#{@tab}", class: "p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800" do %>
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          <% end %>
+          <span class="text-sm font-semibold text-white px-2"><%= date_label %></span>
+          <%= link_to request.path + "?date=#{next_date}&tab=#{@tab}", class: "p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800" do %>
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Stats %>
+      <div class="flex gap-4 text-xs text-gray-400 mb-3">
+        <span><span class="font-bold text-white"><%= @stats[:upcoming] %></span> upcoming</span>
+        <span><span class="font-bold text-white"><%= @stats[:seated] %></span> seated</span>
+        <span><span class="font-bold text-white"><%= @stats[:expected_guests] %></span> guests</span>
+        <% if @stats[:next_reservation] %>
+          <span>Next: <span class="font-bold text-white"><%= @stats[:next_reservation].time %></span></span>
+        <% end %>
+      </div>
+
+      <%# Tabs %>
+      <div class="flex gap-1">
+        <% %w[upcoming seated all past].each do |tab| %>
+          <%= link_to request.path + "?date=#{@date}&tab=#{tab}",
+            class: "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors #{@tab == tab ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-white'}" do %>
+            <%= tab.capitalize %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Reservations list %>
+  <div class="px-4 py-4 space-y-2">
+    <% @filtered.each do |reservation| %>
+      <% style = status_styles[reservation.status] || status_styles["pending"] %>
+      <div class="rounded-xl border bg-gray-900 p-4" style="border-color: <%= style[:color] %>30">
+        <div class="flex items-center gap-3">
+          <%# Time %>
+          <div class="text-right" style="min-width: 52px">
+            <p class="text-lg font-bold text-white"><%= reservation.time %></p>
+          </div>
+
+          <%# Divider %>
+          <div class="w-0.5 h-12 rounded-full" style="background-color: <%= style[:color] %>"></div>
+
+          <%# Info %>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold text-white truncate"><%= reservation.customer_name %></p>
+              <span class="rounded-full px-2 py-0.5 text-[10px] font-bold" style="background-color: <%= style[:bg] %>; color: <%= style[:color] %>">
+                <%= style[:label] %>
+              </span>
+            </div>
+            <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
+              <span><%= reservation.party_size %> guests</span>
+              <% if reservation.customer_phone.present? %>
+                <span><%= reservation.customer_phone %></span>
+              <% end %>
+              <% if reservation.notes.present? %>
+                <span class="truncate max-w-32"><%= reservation.notes %></span>
+              <% end %>
+            </div>
+          </div>
+
+          <%# Quick actions %>
+          <div class="flex gap-2">
+            <% if reservation.status.in?(%w[pending confirmed]) %>
+              <%= button_to "/api/reservations/#{reservation.id}/seat",
+                method: :patch,
+                class: "rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-500 transition-colors" do %>
+                Seat
+              <% end %>
+            <% elsif reservation.status == "seated" %>
+              <%= button_to "/api/reservations/#{reservation.id}/complete",
+                method: :patch,
+                class: "rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-gray-500 transition-colors" do %>
+                Complete
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @filtered.empty? %>
+      <div class="flex items-center justify-center py-20">
+        <p class="text-gray-600">No reservations for this view</p>
+      </div>
+    <% end %>
+  </div>
+</div>

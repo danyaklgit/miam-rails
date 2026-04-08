@@ -1,0 +1,13 @@
+<%# locals: (item:, restaurant:) %>
+<% theme = restaurant.theme || {} %>
+<% primary_color = theme['primaryColor'] || '#000000' %>
+
+<button class="flex w-full items-center justify-between py-2.5 text-left"
+  data-controller="item-modal"
+  data-action="click->item-modal#open"
+  data-item-modal-item-value="<%= item.to_json %>">
+  <span class="text-sm"><%= item.name %></span>
+  <span class="ml-4 text-sm font-medium" style="color: <%= primary_color %>">
+    <%= number_to_currency(item.price, unit: "€", format: "%u%n") %>
+  </span>
+</button>

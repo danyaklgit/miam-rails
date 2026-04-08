@@ -1,0 +1,20 @@
+{
+  "name": "app",
+  "private": true,
+  "scripts": {
+    "build": "esbuild app/javascript/*.* --bundle --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets",
+    "build:css": "npx @tailwindcss/cli -i ./app/assets/stylesheets/application.tailwind.css -o ./app/assets/builds/application.css --minify"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.2",
+    "@hotwired/turbo-rails": "^8.0.23",
+    "@stripe/stripe-js": "^9.1.0",
+    "@tailwindcss/cli": "^4.2.2",
+    "qrcode": "^1.5.4",
+    "tailwindcss": "^4.2.2",
+    "vanilla-colorful": "^0.7.2"
+  }
+}

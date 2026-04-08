@@ -1,0 +1,79 @@
+<%# locals: (item:, show_table: true) %>
+<%
+  border_color = case item.status
+    when "ordered" then "border-red-500"
+    when "preparing" then "border-yellow-500"
+    when "ready" then "border-green-500"
+    else "border-gray-700"
+  end
+  badge_bg = case item.status
+    when "ordered" then "bg-red-500"
+    when "preparing" then "bg-yellow-500"
+    when "ready" then "bg-green-500"
+    else "bg-gray-600"
+  end
+  btn_bg = case item.status
+    when "ordered" then "bg-yellow-600 hover:bg-yellow-500"
+    when "preparing" then "bg-green-600 hover:bg-green-500"
+    when "ready" then "bg-gray-600 hover:bg-gray-500"
+    else "bg-gray-700"
+  end
+  next_status = case item.status
+    when "ordered" then "preparing"
+    when "preparing" then "ready"
+    when "ready" then "served"
+    else nil
+  end
+  next_label = case item.status
+    when "ordered" then "Start"
+    when "preparing" then "Ready"
+    when "ready" then "Served"
+    else nil
+  end
+%>
+
+<div id="ticket_<%= item.id %>" class="rounded-xl border-2 bg-gray-800 <%= border_color %> overflow-hidden"
+  data-controller="ticket elapsed-timer"
+  data-elapsed-timer-created-value="<%= item.created_at.iso8601 %>"
+  data-ticket-item-id-value="<%= item.id %>"
+  data-ticket-next-status-value="<%= next_status %>">
+
+  <div class="flex items-center justify-between px-3 py-2">
+    <% if show_table && item.respond_to?(:order_table_id) && item.order_table_id.present? %>
+      <% table = RestaurantTable.find_by(id: item.order_table_id) %>
+      <span class="text-xs font-medium text-gray-400">
+        Table <%= table&.number || "?" %>
+      </span>
+    <% elsif item.respond_to?(:order_type) && item.order_type != "dineIn" %>
+      <span class="text-xs font-medium text-amber-400"><%= item.order_type&.capitalize %></span>
+    <% else %>
+      <span></span>
+    <% end %>
+    <span class="rounded-full px-2 py-0.5 text-xs font-bold text-white <%= badge_bg %>">
+      <%= item.status.capitalize %>
+    </span>
+  </div>
+
+  <div class="px-3 pb-2">
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-bold text-white"><%= item.quantity || 1 %>&times;</span>
+      <span class="text-sm font-semibold text-white"><%= item.name %></span>
+    </div>
+    <% if item.variant_name.present? %>
+      <p class="text-xs text-gray-400 mt-0.5"><%= item.variant_name %></p>
+    <% end %>
+    <% if item.notes.present? %>
+      <p class="mt-1 rounded bg-yellow-900/30 px-2 py-1 text-xs italic text-yellow-300"><%= item.notes %></p>
+    <% end %>
+  </div>
+
+  <div class="flex items-center justify-between border-t border-gray-700 px-3 py-2">
+    <span class="text-xs text-gray-500" data-elapsed-timer-target="display">0:00</span>
+    <% if next_status %>
+      <button class="rounded-lg px-3 py-1.5 text-xs font-bold text-white <%= btn_bg %> transition-colors"
+        data-action="click->ticket#advance">
+        <%= next_label %>
+      </button>
+    <% end %>
+  </div>
+</div>

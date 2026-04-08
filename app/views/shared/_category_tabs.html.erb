@@ -1,0 +1,21 @@
+<%# locals: (categories:, active_category_id:, restaurant:, url_base:) %>
+<% return if categories.empty? %>
+<% theme = restaurant.theme || {} %>
+<% bg_color = theme["backgroundColor"] || "#ffffff" %>
+<% text_color = theme["textColor"] || "#1f2937" %>
+<% primary_color = theme["primaryColor"] || "#000000" %>
+
+<div class="sticky top-0 z-10 border-b" style="background: <%= bg_color %>; border-color: <%= text_color %>10">
+  <div class="mx-auto max-w-lg overflow-x-auto scrollbar-hide">
+    <div class="flex gap-2 px-4 py-3">
+      <% categories.each do |category| %>
+        <% active = category.id == active_category_id %>
+        <%= link_to url_base.call(category_id: category.id),
+          class: "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap",
+          style: "background-color: #{active ? primary_color : 'transparent'}; color: #{active ? '#ffffff' : text_color}; opacity: #{active ? 1 : 0.6}" do %>
+          <%= category.name %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

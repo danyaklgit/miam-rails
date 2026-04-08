@@ -1,0 +1,157 @@
+<% hours = @restaurant.hours || {} %>
+<% settings = @restaurant.settings || {} %>
+<% order_types = settings["orderTypes"] || {} %>
+<% days = %w[monday tuesday wednesday thursday friday saturday sunday] %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
+</div>
+
+<%= form_with model: @restaurant, url: dashboard_settings_path, method: :patch, class: "space-y-6 max-w-2xl" do |f| %>
+
+  <%# General %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">General</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Restaurant Name</label>
+        <%= f.text_field :name, class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">URL Slug</label>
+        <%= f.text_field :slug, class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+        <p class="mt-1 text-xs text-gray-400">miam.digital/<strong><%= @restaurant.slug %></strong></p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+        <%= f.text_field :tagline, class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <%= f.text_area :description, rows: 3, class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black resize-none" %>
+      </div>
+    </div>
+  </div>
+
+  <%# Address %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Address</h2>
+    <% address = @restaurant.address || {} %>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Street</label>
+        <input type="text" name="restaurant[address][street]" value="<%= address["street"] %>"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+        <input type="text" name="restaurant[address][city]" value="<%= address["city"] %>"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+        <input type="text" name="restaurant[address][postalCode]" value="<%= address["postalCode"] %>"
+          class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
+      </div>
+    </div>
+  </div>
+
+  <%# Opening Hours %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Opening Hours</h2>
+    <p class="text-xs text-gray-400 mb-4">These hours are used for customer display and reservation availability.</p>
+    <div class="space-y-3">
+      <% days.each do |day| %>
+        <% h = hours[day] || { "open" => "11:00", "close" => "22:00", "closed" => false } %>
+        <div class="flex items-center gap-3">
+          <span class="w-24 text-sm font-medium text-gray-700 capitalize"><%= day %></span>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="hidden" name="restaurant[hours][<%= day %>][closed]" value="true">
+            <input type="checkbox" name="restaurant[hours][<%= day %>][closed]" value="false" <%= 'checked' unless h["closed"] %>
+              class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+              onchange="this.closest('.flex').querySelectorAll('.time-input').forEach(el => el.classList.toggle('hidden', !this.checked))">
+            <span class="text-xs text-gray-500"><%= h["closed"] ? "Closed" : "Open" %></span>
+          </label>
+          <input type="time" name="restaurant[hours][<%= day %>][open]" value="<%= h["open"] %>"
+            class="time-input rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400 <%= 'hidden' if h["closed"] %>">
+          <span class="time-input text-gray-400 <%= 'hidden' if h["closed"] %>">—</span>
+          <input type="time" name="restaurant[hours][<%= day %>][close]" value="<%= h["close"] %>"
+            class="time-input rounded-lg border border-gray-200 px-2 py-1.5 text-sm outline-none focus:border-gray-400 <%= 'hidden' if h["closed"] %>">
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Order Types %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Types</h2>
+    <div class="space-y-3">
+      <% %w[dineIn takeaway delivery].each do |ot| %>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="hidden" name="restaurant[settings][orderTypes][<%= ot %>]" value="false">
+          <input type="checkbox" name="restaurant[settings][orderTypes][<%= ot %>]" value="true"
+            <%= 'checked' if order_types[ot] %>
+            class="h-4 w-4 rounded border-gray-300 text-black focus:ring-black">
+          <span class="text-sm font-medium text-gray-700"><%= { "dineIn" => "Dine-in", "takeaway" => "Takeaway", "delivery" => "Delivery" }[ot] %></span>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Dine-in Mode (conditional) %>
+  <% if order_types["dineIn"] %>
+    <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Dine-in Mode</h2>
+      <div class="space-y-3">
+        <label class="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-colors has-[:checked]:border-black">
+          <input type="radio" name="restaurant[settings][dineInMode]" value="ordering"
+            <%= 'checked' if settings["dineInMode"] == "ordering" %> class="mt-1">
+          <div>
+            <p class="font-medium text-gray-900">Full Ordering</p>
+            <p class="text-sm text-gray-500">Customers order from their phones, kitchen receives orders directly.</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-colors has-[:checked]:border-black">
+          <input type="radio" name="restaurant[settings][dineInMode]" value="paymentOnly"
+            <%= 'checked' if settings["dineInMode"] == "paymentOnly" %> class="mt-1">
+          <div>
+            <p class="font-medium text-gray-900">Payment Only</p>
+            <p class="text-sm text-gray-500">Waiter takes orders, customers only use QR to view menu and pay.</p>
+          </div>
+        </label>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Tax & Currency %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Tax & Currency</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+        <%= f.select :currency, %w[EUR GBP USD CHF], {},
+          class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+        <%= f.number_field :tax_rate, step: 0.5, min: 0, max: 100,
+          class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+      </div>
+    </div>
+  </div>
+
+  <%# Google Reviews %>
+  <div class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Google Reviews</h2>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Google Business Review URL</label>
+      <%= f.text_field :google_business_url, placeholder: "https://g.page/r/...",
+        class: "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black" %>
+      <p class="mt-1 text-xs text-gray-400">Customers with 4-5 star ratings will be redirected to this URL after paying.</p>
+    </div>
+  </div>
+
+  <button type="submit" class="rounded-xl bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-gray-800 transition-colors">
+    Save Settings
+  </button>
+<% end %>

@@ -1,0 +1,133 @@
+<%= turbo_stream_from "restaurant_#{@restaurant.id}" %>
+
+<%
+  status_colors = {
+    "confirmed" => "#3b82f6",
+    "preparing" => "#d97706",
+    "ready" => "#059669",
+    "completed" => "#6b7280",
+    "cancelled" => "#dc2626"
+  }
+  item_status_styles = {
+    "ordered"   => { bg: "#dc262620", text: "#f87171" },
+    "preparing" => { bg: "#d9770620", text: "#fbbf24" },
+    "ready"     => { bg: "#05966920", text: "#34d399" },
+    "served"    => { bg: "#6b728020", text: "#9ca3af" }
+  }
+%>
+
+<div class="min-h-screen bg-gray-950" data-controller="auto-refresh"
+  data-auto-refresh-interval-value="5000"
+  data-auto-refresh-url-value="<%= request.path %>?filter=<%= @filter %>">
+
+  <%# Header %>
+  <div class="sticky top-0 z-30 bg-gray-900 border-b border-gray-800 px-4 py-3">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold text-white">Orders</h1>
+        <span class="rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-bold text-white"><%= @orders.size %></span>
+      </div>
+    </div>
+    <div class="flex gap-1">
+      <% %w[active all takeaway delivery].each do |filter| %>
+        <%= link_to request.path + "?filter=#{filter}",
+          class: "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors #{@filter == filter ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-white'}" do %>
+          <%= filter.capitalize %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Orders grid %>
+  <div class="p-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <% @orders.each do |order| %>
+      <% color = status_colors[order.status] || "#6b7280" %>
+      <% items = order.order_items %>
+      <% all_ready = items.any? && items.all? { |i| i.status == "ready" } %>
+
+      <div class="rounded-xl border bg-gray-900 overflow-hidden
+        <%= order.status.in?(%w[completed cancelled]) ? 'border-gray-800 opacity-60' : all_ready ? 'border-green-700 ring-1 ring-green-700/50' : 'border-gray-700' %>">
+
+        <%# Header %>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+          <div class="flex items-center gap-2">
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-bold text-white
+              <%= order.type == 'delivery' ? 'bg-blue-600' : 'bg-amber-600' %>">
+              <%= order.type == "delivery" ? "Delivery" : "Takeaway" %>
+            </span>
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-bold" style="background-color: <%= color %>30; color: <%= color %>">
+              <%= order.status.capitalize %>
+            </span>
+          </div>
+          <span class="text-xs text-gray-500" data-controller="elapsed-timer" data-elapsed-timer-created-value="<%= order.created_at.iso8601 %>">
+            <span data-elapsed-timer-target="display">0m</span>
+          </span>
+        </div>
+
+        <%# Customer info %>
+        <% info = order.customer_info || {} %>
+        <div class="px-4 py-2 border-b border-gray-800">
+          <% if info["name"].present? %>
+            <p class="text-sm font-medium text-white"><%= info["name"] %></p>
+          <% end %>
+          <% if info["phone"].present? %>
+            <p class="text-xs text-gray-500"><%= info["phone"] %></p>
+          <% end %>
+          <% if order.type == "delivery" && order.delivery_address.present? %>
+            <p class="text-xs text-gray-500 mt-0.5"><%= order.delivery_address["street"] %>, <%= order.delivery_address["city"] %></p>
+          <% elsif order.pickup_time.present? %>
+            <p class="text-xs text-gray-500 mt-0.5">Pickup: <%= order.pickup_time.strftime("%H:%M") %></p>
+          <% end %>
+        </div>
+
+        <%# Items %>
+        <div class="px-4 py-2 space-y-1">
+          <% items.each do |item| %>
+            <% ist = item_status_styles[item.status] || item_status_styles["ordered"] %>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500"><%= item.quantity %>&times;</span>
+                <span class="text-sm text-white"><%= item.name %></span>
+              </div>
+              <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold" style="background-color: <%= ist[:bg] %>; color: <%= ist[:text] %>">
+                <%= item.status.capitalize %>
+              </span>
+            </div>
+            <% if item.notes.present? %>
+              <p class="text-xs italic text-gray-600 ml-5"><%= item.notes %></p>
+            <% end %>
+          <% end %>
+        </div>
+
+        <%# Footer %>
+        <div class="flex items-center justify-between px-4 py-3 border-t border-gray-800">
+          <span class="text-sm font-bold text-white"><%= number_to_currency(order.total_amount, unit: "€", format: "%u%n") %></span>
+          <% unless order.status.in?(%w[completed cancelled]) %>
+            <% next_status = case order.status
+                when "pending" then "confirmed"
+                when "confirmed" then "preparing"
+                when "preparing" then "ready"
+                when "ready" then "completed"
+              end %>
+            <% if next_status %>
+              <button class="rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-colors"
+                style="background-color: <%= status_colors[next_status] || '#6b7280' %>"
+                data-controller="ticket"
+                data-action="click->ticket#advanceOrder"
+                data-ticket-order-id-value="<%= order.id %>"
+                data-ticket-next-status-value="<%= next_status %>">
+                <%= next_status.capitalize %>
+              </button>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @orders.empty? %>
+      <div class="col-span-full flex items-center justify-center py-20">
+        <p class="text-gray-600">No orders</p>
+      </div>
+    <% end %>
+  </div>
+</div>
