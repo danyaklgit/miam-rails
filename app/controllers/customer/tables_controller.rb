@@ -1,6 +1,7 @@
 class Customer::TablesController < Customer::BaseController
   def show
     load_table_data
+    @my_paid_amount = @order&.payments&.where(user_id: device_id, status: "succeeded")&.sum(:amount).to_f || 0
     @menus = @restaurant.menus.active.sorted
     @active_menu = @menus.find { |m| m.id == params[:menu_id] } || @menus.first
     @categories = (@active_menu&.categories&.sorted || []).select { |c| c.menu_items.available.any? }
@@ -10,11 +11,13 @@ class Customer::TablesController < Customer::BaseController
 
   def cart_drawer
     load_table_data
+    my_paid = @order&.payments&.where(user_id: device_id, status: "succeeded")&.sum(:amount) || 0
     render partial: "shared/dine_in_cart_drawer_content", locals: {
       order: @order,
       order_items: @order_items,
       restaurant: @restaurant,
-      paid_amount: @order&.paid_amount.to_f
+      paid_amount: @order&.paid_amount.to_f,
+      my_paid_amount: my_paid.to_f
     }, layout: false
   end
 

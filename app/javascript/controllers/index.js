@@ -57,11 +57,15 @@ import ModalController from "./modal_controller"
 
 import FloorTableController from "./floor_table_controller"
 import BulkStatusController from "./bulk_status_controller"
+import ImageUploadController from "./image_upload_controller"
+import SingleImageUploadController from "./single_image_upload_controller"
 
 application.register("sidebar", SidebarController)
 application.register("restaurant-switcher", RestaurantSwitcherController)
 application.register("modal", ModalController)
 application.register("floor-table", FloorTableController)
 application.register("bulk-status", BulkStatusController)
+application.register("image-upload", ImageUploadController)
+application.register("single-image-upload", SingleImageUploadController)
 
 export { application }

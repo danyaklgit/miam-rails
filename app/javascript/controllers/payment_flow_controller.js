@@ -5,25 +5,33 @@ export default class extends Controller {
     "sheet", "title", "content",
     "stepSplit", "stepItems", "stepEqual", "stepCustom", "stepTip", "stepDone",
     "itemsList", "itemsTotal",
-    "equalAmount", "peopleCount",
+    "equalAmount", "totalPeopleCount", "sharesCount", "sharesPlural",
+    "equalInfo", "equalInfoText", "splitAcrossDecBtn", "splitAcrossIncBtn",
     "customInput",
     "billAmount", "tipBtn", "customTipSection", "customTipInput",
     "tipBillDisplay", "tipAmountDisplay", "tipTotalDisplay", "payButton",
     "doneMessage"
   ]
-  static values = { orderId: String, total: Number, paid: Number, left: Number, slug: String, primaryColor: String }
+  static values = { orderId: String, total: Number, paid: Number, left: Number, slug: String, primaryColor: String, splitConfig: Object }
 
   connect() {
     this.splitType = null
     this.paymentAmount = 0
     this.tipPercent = null
     this.customTip = 0
-    this.equalPeople = 1
+    this.totalPeople = 2
+    this.sharesToPay = 1
     this.selectedItemPayments = []
     this.paymentMade = false
 
     this.openHandler = () => this.open()
     window.addEventListener("payment:open", this.openHandler)
+
+    // Auto-open after page refresh triggered by cart drawer
+    if (sessionStorage.getItem("open_payment_after_refresh")) {
+      sessionStorage.removeItem("open_payment_after_refresh")
+      requestAnimationFrame(() => this.open())
+    }
   }
 
   disconnect() {
@@ -45,8 +53,9 @@ export default class extends Controller {
     setTimeout(() => {
       this.element.classList.add("hidden")
       if (this.paymentMade) {
-        // Refresh page so payment flow and drawer re-render with updated paid items
         this.paymentMade = false
+        const scrollY = window.scrollY
+        document.addEventListener("turbo:load", () => window.scrollTo(0, scrollY), { once: true })
         window.Turbo.visit(window.location.href, { action: "replace" })
       }
     }, 300)
@@ -71,8 +80,7 @@ export default class extends Controller {
     } else if (this.splitType === "items") {
       this.showStep("items")
     } else if (this.splitType === "equal") {
-      this.equalPeople = 1
-      this.updateEqualAmount()
+      this.initEqualSplit()
       this.showStep("equal")
     } else if (this.splitType === "custom") {
       this.showStep("custom")
@@ -104,27 +112,81 @@ export default class extends Controller {
   }
 
   // Step 2b: Equal split
-  incrementPeople() {
-    const maxPeople = Math.max(1, Math.floor(this.leftValue / (this.totalValue / Math.max(1, 2))))
-    if (this.equalPeople < maxPeople) {
-      this.equalPeople++
+  initEqualSplit() {
+    const sc = this.splitConfigValue || {}
+    this.splitLocked = !!(sc.totalPeople && sc.sharesPaid > 0)
+
+    if (this.splitLocked) {
+      // Split already configured by a previous payment — lock the total people
+      this.totalPeople = sc.totalPeople
+      this.sharesPaidAlready = sc.sharesPaid || 0
+      const remaining = this.totalPeople - this.sharesPaidAlready
+      this.sharesToPay = Math.min(1, remaining)
+      this.maxShares = remaining
+
+      // Show info banner
+      this.equalInfoTarget.classList.remove("hidden")
+      this.equalInfoTextTarget.textContent = `Split across ${this.totalPeople} — ${this.sharesPaidAlready} share${this.sharesPaidAlready === 1 ? '' : 's'} already paid, ${remaining} remaining`
+
+      // Lock the "split across" controls
+      this.splitAcrossDecBtnTarget.disabled = true
+      this.splitAcrossDecBtnTarget.classList.add("opacity-30", "cursor-not-allowed")
+      this.splitAcrossIncBtnTarget.disabled = true
+      this.splitAcrossIncBtnTarget.classList.add("opacity-30", "cursor-not-allowed")
+    } else {
+      // Fresh split — user chooses
+      this.totalPeople = 2
+      this.sharesToPay = 1
+      this.sharesPaidAlready = 0
+      this.maxShares = null
+
+      this.equalInfoTarget.classList.add("hidden")
+      this.splitAcrossDecBtnTarget.disabled = false
+      this.splitAcrossDecBtnTarget.classList.remove("opacity-30", "cursor-not-allowed")
+      this.splitAcrossIncBtnTarget.disabled = false
+      this.splitAcrossIncBtnTarget.classList.remove("opacity-30", "cursor-not-allowed")
+    }
+
+    this.updateEqualAmount()
+  }
+
+  incrementTotalPeople() {
+    if (this.splitLocked) return
+    this.totalPeople++
+    this.updateEqualAmount()
+  }
+
+  decrementTotalPeople() {
+    if (this.splitLocked) return
+    if (this.totalPeople > 2) {
+      this.totalPeople--
+      if (this.sharesToPay > this.totalPeople) this.sharesToPay = this.totalPeople
       this.updateEqualAmount()
     }
   }
 
-  decrementPeople() {
-    if (this.equalPeople > 1) {
-      this.equalPeople--
+  incrementShares() {
+    const max = this.maxShares || this.totalPeople
+    if (this.sharesToPay < max) {
+      this.sharesToPay++
+      this.updateEqualAmount()
+    }
+  }
+
+  decrementShares() {
+    if (this.sharesToPay > 1) {
+      this.sharesToPay--
       this.updateEqualAmount()
     }
   }
 
   updateEqualAmount() {
-    const guestCount = Math.max(2, this.equalPeople + 1)
-    const share = Math.ceil((this.totalValue / guestCount) * this.equalPeople * 100) / 100
-    this.paymentAmount = Math.min(share, this.leftValue)
+    const perPerson = Math.ceil((this.totalValue / this.totalPeople) * 100) / 100
+    this.paymentAmount = Math.min(perPerson * this.sharesToPay, this.leftValue)
     this.equalAmountTarget.textContent = `€${this.paymentAmount.toFixed(2)}`
-    this.peopleCountTarget.textContent = this.equalPeople
+    this.totalPeopleCountTarget.textContent = this.totalPeople
+    this.sharesCountTarget.textContent = this.sharesToPay
+    this.sharesPluralTarget.textContent = this.sharesToPay === 1 ? "" : "s"
   }
 
   confirmEqual() {
@@ -218,6 +280,13 @@ export default class extends Controller {
 
     if (this.splitType === "items" && this.selectedItemPayments.length > 0) {
       body.itemPayments = this.selectedItemPayments
+    }
+
+    if (this.splitType === "equal") {
+      body.splitConfig = {
+        totalPeople: this.totalPeople,
+        sharesPaying: this.sharesToPay
+      }
     }
 
     try {

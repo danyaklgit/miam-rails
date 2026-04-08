@@ -4,7 +4,8 @@ class Api::OrdersController < Api::BaseController
     render json: {
       order: order,
       items: order.order_items,
-      payments: order.payments
+      payments: order.payments,
+      split_config: order.split_config
     }
   end
 
@@ -20,23 +21,38 @@ class Api::OrdersController < Api::BaseController
   def add_items
     order = Order.find(params[:id])
     items = params[:items] || []
-    created = items.map do |item_data|
-      order.order_items.create!(
-        menu_item_id: item_data[:menu_item_id],
-        name: item_data[:name],
-        price: item_data[:price],
-        quantity: item_data[:quantity] || 1,
-        notes: item_data[:notes] || "",
-        type: item_data[:type] || "food",
-        variant_id: item_data[:variant_id],
-        variant_name: item_data[:variant_name],
-        variant_price_modifier: item_data[:variant_price_modifier] || 0,
-        ordered_by: item_data[:ordered_by] || session[:device_id] || SecureRandom.uuid,
-        status: "pending"
-      )
+    result_ids = items.map do |item_data|
+      ordered_by = item_data[:ordered_by] || session[:device_id] || SecureRandom.uuid
+      qty = (item_data[:quantity] || 1).to_i
+
+      # Try to merge into an existing pending item with the same menu_item, variant, and notes
+      existing = order.order_items
+        .where(status: "pending", menu_item_id: item_data[:menu_item_id], ordered_by: ordered_by)
+        .where(variant_id: item_data[:variant_id].presence)
+        .where(notes: item_data[:notes].presence || "")
+        .first
+
+      if existing
+        existing.update!(quantity: existing.quantity + qty)
+        existing.id
+      else
+        order.order_items.create!(
+          menu_item_id: item_data[:menu_item_id],
+          name: item_data[:name],
+          price: item_data[:price],
+          quantity: qty,
+          notes: item_data[:notes] || "",
+          type: item_data[:type] || "food",
+          variant_id: item_data[:variant_id],
+          variant_name: item_data[:variant_name],
+          variant_price_modifier: item_data[:variant_price_modifier] || 0,
+          ordered_by: ordered_by,
+          status: "pending"
+        ).id
+      end
     end
     order.recalculate_total!
-    render json: { success: true, items: created.map(&:id) }
+    render json: { success: true, items: result_ids }
   end
 
   # Convert pending items to ordered (dine-in "send to kitchen")
@@ -68,7 +84,7 @@ class Api::OrdersController < Api::BaseController
     order = Order.find(params[:id])
     amount = params[:amount].to_f
     tip_amount = params[:tip_amount].to_f
-    device_id = params[:deviceId] || session[:device_id] || "anonymous"
+    device_id = session[:device_id] || params[:deviceId] || "anonymous"
 
     payment = order.payments.create!(
       user_id: device_id,
@@ -78,6 +94,20 @@ class Api::OrdersController < Api::BaseController
       status: "succeeded",
       method: "card"
     )
+
+    # Save/update split config for equal splits
+    if params[:splitType] == "equal" && params[:splitConfig].present?
+      sc = params[:splitConfig]
+      existing = order.split_config || {}
+      total_people = sc[:totalPeople].to_i
+      shares_paying = sc[:sharesPaying].to_i
+      shares_paid = (existing["sharesPaid"] || 0) + shares_paying
+      order.update!(split_config: {
+        "totalPeople" => total_people,
+        "perShare" => (order.total_amount.to_f / total_people).ceil(2),
+        "sharesPaid" => shares_paid
+      })
+    end
 
     # Mark items as paid if split by items
     if params[:itemPayments].present?

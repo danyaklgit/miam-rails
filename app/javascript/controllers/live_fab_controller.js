@@ -151,9 +151,11 @@ export default class extends Controller {
     }
 
     const counts = { pending: 0, ordered: 0, preparing: 0, ready: 0, served: 0 }
+    let orderTotal = 0
     items.forEach(el => {
       const status = el.dataset.orderStatus
       if (counts[status] !== undefined) counts[status]++
+      orderTotal += parseFloat(el.dataset.itemTotal) || 0
     })
 
     const total = items.length
@@ -196,5 +198,15 @@ export default class extends Controller {
     if (this.hasButtonTarget) this.buttonTarget.style.backgroundColor = bg
     if (this.hasLabelTarget) this.labelTarget.textContent = label
     if (this.hasCountTarget) this.countTarget.textContent = total
+    if (this.hasAmountTarget) {
+      const signal = document.getElementById("order_status_signal")
+      const paid = signal ? parseFloat(signal.dataset.paid) || 0 : 0
+      if (paid > 0 && paid < orderTotal) {
+        const remaining = (orderTotal - paid).toFixed(2)
+        this.amountTarget.innerHTML = `<s class="opacity-50 mr-1">€${orderTotal.toFixed(2)}</s> €${remaining}`
+      } else {
+        this.amountTarget.innerHTML = `€${orderTotal.toFixed(2)}`
+      }
+    }
   }
 }

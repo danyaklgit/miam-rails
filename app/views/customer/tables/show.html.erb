@@ -60,6 +60,7 @@
     order_items: @order_items,
     restaurant: @restaurant,
     paid_amount: @order&.paid_amount.to_f,
+    my_paid_amount: @my_paid_amount || 0,
     table_number: @table.number %>
 
   <%# Payment flow %>

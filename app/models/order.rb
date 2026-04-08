@@ -17,8 +17,8 @@ class Order < ApplicationRecord
 
   # Recalculate total from order items
   def recalculate_total!
-    total = order_items.sum { |i| (i.price.to_f + (i.variant_price_modifier || 0).to_f) * (i.quantity || 1) }
-    update_column(:total_amount, total)
+    total = order_items.reload.sum { |i| (i.price.to_f + (i.variant_price_modifier || 0).to_f) * (i.quantity || 1) }
+    update!(total_amount: total)
   end
 
   # Auto-sync order status based on item statuses (ported from Express offerEngine)

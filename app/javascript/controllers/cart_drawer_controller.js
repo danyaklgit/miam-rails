@@ -165,11 +165,19 @@ export default class extends Controller {
       headers: { "Content-Type": "application/json", "X-CSRF-Token": this.csrf }
     })
     this.close()
-    window.Turbo.visit(window.location.href, { action: "replace" })
+    this.visitPreservingScroll()
   }
 
-  // Dine-in: open payment flow
+  // Dine-in: open payment flow — refresh page first to get fresh item data
   openPayment() {
-    window.dispatchEvent(new CustomEvent("payment:open"))
+    this.close()
+    sessionStorage.setItem("open_payment_after_refresh", "true")
+    this.visitPreservingScroll()
+  }
+
+  visitPreservingScroll() {
+    const scrollY = window.scrollY
+    document.addEventListener("turbo:load", () => window.scrollTo(0, scrollY), { once: true })
+    window.Turbo.visit(window.location.href, { action: "replace" })
   }
 }

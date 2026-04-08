@@ -1,4 +1,4 @@
-<%# locals: (order:, order_items:, restaurant:, paid_amount: 0, table_number: nil) %>
+<%# locals: (order:, order_items:, restaurant:, paid_amount: 0, my_paid_amount: 0, table_number: nil) %>
 
 <div id="dinein-cart-drawer" class="fixed inset-0 z-50 hidden"
   data-controller="cart-drawer"
@@ -14,7 +14,8 @@
         order: order,
         order_items: order_items,
         restaurant: restaurant,
-        paid_amount: paid_amount %>
+        paid_amount: paid_amount,
+        my_paid_amount: my_paid_amount %>
     </div>
   </div>
 </div>

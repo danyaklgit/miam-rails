@@ -12,9 +12,11 @@
   sc = status_colors[item.status] || status_colors["ordered"]
 %>
 
+<% item_total = (item.price.to_f + (item.variant_price_modifier || 0).to_f) * (item.quantity || 1) %>
 <div id="<%= dom_id(item) %>" class="flex items-center justify-between rounded-xl border px-4 py-3 transition-all"
   style="border-color: <%= text_color %>15"
-  data-order-status="<%= item.status %>">
+  data-order-status="<%= item.status %>"
+  data-item-total="<%= item_total.round(2) %>">
   <div class="flex items-center gap-3">
     <span class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-xs font-bold"><%= item.quantity %></span>
     <div>

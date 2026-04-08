@@ -19,6 +19,17 @@
       <input type="number" name="menu_item[price]" step="0.01" min="0" required placeholder="0.00"
         class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-black focus:border-black">
     </div>
+    <div data-controller="image-upload">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Image</label>
+      <input type="file" accept="image/*" class="hidden" data-image-upload-target="input" data-action="change->image-upload#upload">
+      <input type="hidden" name="menu_item[images_json]" value="[]" data-image-upload-target="urls">
+      <div class="flex flex-wrap gap-2 items-center" data-image-upload-target="preview">
+        <button type="button" data-action="click->image-upload#pick"
+          class="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        </button>
+      </div>
+    </div>
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
       <div class="flex gap-2">

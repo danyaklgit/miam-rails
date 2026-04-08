@@ -4,6 +4,13 @@
 <% total = order&.total_amount.to_f %>
 <% paid = order&.paid_amount.to_f %>
 <% left_to_pay = [total - paid, 0].max %>
+<%
+  has_item_payments = (order_items || []).any? { |i| i.paid_by.present? }
+  has_equal_split = (order&.split_config || {})["totalPeople"].present?
+  # Show items/equal options only if no one has paid yet, or if that specific split type was used
+  show_items_option = paid == 0 || has_item_payments
+  show_equal_option = paid == 0 || has_equal_split
+%>
 
 <div id="payment-flow" class="fixed inset-0 z-50 hidden" data-controller="payment-flow"
   data-payment-flow-order-id-value="<%= order&.id %>"
@@ -11,7 +18,8 @@
   data-payment-flow-paid-value="<%= paid %>"
   data-payment-flow-left-value="<%= left_to_pay %>"
   data-payment-flow-slug-value="<%= restaurant.slug %>"
-  data-payment-flow-primary-color-value="<%= primary_color %>">
+  data-payment-flow-primary-color-value="<%= primary_color %>"
+  data-payment-flow-split-config-value="<%= (order&.split_config || {}).to_json %>">
 
   <div class="absolute inset-0 bg-black/50" data-action="click->payment-flow#close"></div>
 
@@ -40,22 +48,26 @@
               <p class="text-sm text-gray-500">€<%= left_to_pay.round(2) %></p>
             </div>
           </button>
-          <button data-action="click->payment-flow#selectSplit" data-split="items"
-            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">🍽</div>
-            <div>
-              <p class="font-semibold">Pay for your items</p>
-              <p class="text-sm text-gray-500">Select which items to pay for</p>
-            </div>
-          </button>
-          <button data-action="click->payment-flow#selectSplit" data-split="equal"
-            class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-lg">👥</div>
-            <div>
-              <p class="font-semibold">Divide equally</p>
-              <p class="text-sm text-gray-500">Split the bill evenly</p>
-            </div>
-          </button>
+          <% if show_items_option %>
+            <button data-action="click->payment-flow#selectSplit" data-split="items"
+              class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">🍽</div>
+              <div>
+                <p class="font-semibold">Pay for your items</p>
+                <p class="text-sm text-gray-500">Select which items to pay for</p>
+              </div>
+            </button>
+          <% end %>
+          <% if show_equal_option %>
+            <button data-action="click->payment-flow#selectSplit" data-split="equal"
+              class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-lg">👥</div>
+              <div>
+                <p class="font-semibold">Divide equally</p>
+                <p class="text-sm text-gray-500">Split the bill evenly</p>
+              </div>
+            </button>
+          <% end %>
           <button data-action="click->payment-flow#selectSplit" data-split="custom"
             class="flex w-full items-center gap-4 rounded-2xl border-2 border-gray-200 p-4 text-left transition-colors hover:border-gray-400">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-lg">✏️</div>
@@ -101,20 +113,41 @@
 
       <%# Step 2b: Equal split %>
       <div data-payment-flow-target="stepEqual" class="hidden">
-        <div class="text-center py-6">
+        <div class="text-center pt-4 pb-6">
           <p class="text-sm text-gray-500 mb-2">Your share</p>
           <p class="text-4xl font-bold" data-payment-flow-target="equalAmount">€0.00</p>
         </div>
-        <div class="flex items-center justify-center gap-6 mb-6">
-          <button data-action="click->payment-flow#decrementPeople"
-            class="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-500 hover:border-gray-400">−</button>
-          <div class="text-center">
-            <p class="text-2xl font-bold" data-payment-flow-target="peopleCount">1</p>
-            <p class="text-xs text-gray-500">person(s)</p>
-          </div>
-          <button data-action="click->payment-flow#incrementPeople"
-            class="flex h-12 w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-500 hover:border-gray-400">+</button>
+
+        <%# Info banner when split is already configured %>
+        <div data-payment-flow-target="equalInfo" class="hidden rounded-xl bg-green-50 border border-green-200 px-4 py-3 mb-3">
+          <p class="text-sm text-green-800" data-payment-flow-target="equalInfoText"></p>
         </div>
+
+        <%# Split across N people (locked once first payment is made) %>
+        <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 mb-3" data-payment-flow-target="splitAcrossRow">
+          <p class="text-sm font-medium text-gray-700">Split across</p>
+          <div class="flex items-center gap-3">
+            <button data-action="click->payment-flow#decrementTotalPeople" data-payment-flow-target="splitAcrossDecBtn"
+              class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-200 text-sm font-bold text-gray-500 hover:border-gray-400">−</button>
+            <span class="w-6 text-center text-lg font-bold" data-payment-flow-target="totalPeopleCount">2</span>
+            <button data-action="click->payment-flow#incrementTotalPeople" data-payment-flow-target="splitAcrossIncBtn"
+              class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-200 text-sm font-bold text-gray-500 hover:border-gray-400">+</button>
+          </div>
+        </div>
+
+        <%# Pay for M shares %>
+        <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 mb-6">
+          <p class="text-sm font-medium text-gray-700">I'm paying for</p>
+          <div class="flex items-center gap-3">
+            <button data-action="click->payment-flow#decrementShares"
+              class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-200 text-sm font-bold text-gray-500 hover:border-gray-400">−</button>
+            <span class="w-6 text-center text-lg font-bold" data-payment-flow-target="sharesCount">1</span>
+            <span class="text-sm text-gray-500">share<span data-payment-flow-target="sharesPlural">s</span></span>
+            <button data-action="click->payment-flow#incrementShares"
+              class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-200 text-sm font-bold text-gray-500 hover:border-gray-400">+</button>
+          </div>
+        </div>
+
         <button data-action="click->payment-flow#confirmEqual"
           class="w-full rounded-2xl py-4 text-center text-sm font-bold text-white" style="background-color: <%= primary_color %>">
           Continue to tip
